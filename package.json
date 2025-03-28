@@ -1,0 +1,31 @@
+{
+  "engines": {
+    "node": ">=20.6.0"
+  },
+  "name": "ttt-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "node --env-file=.env --watch -r ts-node/register src/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^22.13.13",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "canvas": "^3.1.0",
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.4.7",
+    "emoji-name-map": "^2.0.1",
+    "emoji-unicode": "^2.0.2",
+    "node-fetch": "^3.3.2",
+    "node-schedule": "^2.1.1"
+  }
+}
