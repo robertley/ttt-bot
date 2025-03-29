@@ -2,8 +2,6 @@ import { CommandInteraction, SlashCommandBuilder } from "discord.js";
 import { upgradeRange } from "../../modules/player";
 import { doActionEvents } from "../../modules/bot";
 
-
-// TODO confirm option
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('ap-upgrade-range')

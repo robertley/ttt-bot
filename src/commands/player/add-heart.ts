@@ -3,7 +3,6 @@ import { addHeart, upgradeRange } from "../../modules/player";
 import { doActionEvents } from "../../modules/bot";
 
 
-// TODO confirm option
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('ap-add-heart')

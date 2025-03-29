@@ -18,14 +18,15 @@ async function createNewPlayer(user: User, guild: Guild, emoji): Promise<Player>
 
     let player: Player = {
         id: user.id,
-        username: user.username,
+        displayName: user.displayName,
         actionPoints: 0,
         health: 3,
         range: 2,
         emoji: emoji,
         secretChannelId: null,
         diedDate: null,
-        kills: []
+        kills: [],
+        brainOrBrawn: null
     }
 
     player.secretChannelId = await createSecretPlayerChannel(guild, player);
@@ -35,6 +36,19 @@ async function createNewPlayer(user: User, guild: Guild, emoji): Promise<Player>
     await guild.members.fetch(user.id).then(member => {
         member.roles.add(role);
     });
+
+
+    // update user server nickname to include emoji
+    await guild.members.fetch(user.id).then(async member => {
+        // doesnt work on admins
+        try {
+            await member.setNickname(`${user.displayName} ${emoji}`);
+        } catch (e) {
+            console.log(e);
+        }
+    
+    });
+
 
     set('player', guild, player);
 
@@ -49,15 +63,24 @@ async function handleAPButton(interaction: ButtonInteraction) {
     let message;
     let targetUser;
     switch (action) {
-        case 'move':
-            resp = await move(interaction.user, actionSecondary as 'up' | 'down' | 'left' | 'right', interaction.guild);
-            break;
+        case 'movePanel':
+            await openMovePanel(interaction);
+            return;
         case 'attackPanel':
             await openAttackSendAPPanel(interaction, 'attack');
             return;
         case 'sendApPanel':
             await openAttackSendAPPanel(interaction, 'sendAp');
             return;
+        case 'upgradeRangePanel':
+            await confirmPanel(interaction, 'upgradeRange');
+            return;
+        case 'healPanel':
+            await confirmPanel(interaction, 'heal');
+            return;
+        case 'move':
+            resp = await move(interaction.user, actionSecondary as 'up' | 'down' | 'left' | 'right', interaction.guild);
+            break;
         case 'attack':
             targetUser = interaction.guild.members.cache.get(actionSecondary).user;
             resp = await attack(interaction.user, targetUser, interaction.guild);
@@ -95,10 +118,10 @@ async function handleAPButton(interaction: ButtonInteraction) {
             message = `Moved ${actionSecondary}!`;
             break;
         case 'attack':
-            message = `Attacked ${resp.data.target.username}!`;
+            message = `Attacked ${resp.data.target.displayName}!`;
             break;
         case 'sendAp':
-            message = `Sent an AP to ${resp.data.target.username}!`;
+            message = `Sent an AP to ${resp.data.target.displayName}!`;
             break;
         case 'upgradeRange':
             message = `Range upgraded!`;
@@ -133,7 +156,7 @@ async function openAttackSendAPPanel(interaction: ButtonInteraction, type: 'atta
     let buttons = [];
     for (let p of inRangePlayers) {
         buttons.push({
-            label: `${p.username} ${p.emoji}`,
+            label: `${p.displayName} ${p.emoji}`,
             custom_id: `ap-${type}-${p.id}`,
             style: 1,
             type: 2
@@ -152,6 +175,46 @@ async function openAttackSendAPPanel(interaction: ButtonInteraction, type: 'atta
         await interaction.editReply({ content: message, components: [{type: 1, components: group}] });
     }
     
+}
+
+async function openMovePanel(interaction: ButtonInteraction) {
+    let leftButton = {
+        type: 2,
+        style: 1,
+        label: 'Left',
+        custom_id: `ap-move-left`,
+    }
+    let rightButton = {
+        type: 2,
+        style: 1,
+        label: 'Right',
+        custom_id: `ap-move-right`,
+    }
+    let upButton = {
+        type: 2,
+        style: 1,
+        label: 'Up',
+        custom_id: `ap-move-up`,
+    }
+    let downButton = {
+        type: 2,
+        style: 1,
+        label: 'Down',
+        custom_id: `ap-move-down`,
+    }
+
+    await interaction.editReply({ content: 'Choose a direction', components: [{type: 1, components: [leftButton, rightButton, upButton, downButton]}]});
+}
+
+async function confirmPanel(interaction: ButtonInteraction, action: 'upgradeRange' | 'heal') {
+    let confirmButton = {
+        type: 2,
+        style: 1,
+        label: 'Confirm',
+        custom_id: `ap-${action}`,
+    }
+
+    await interaction.editReply({ content: `Confirm ${action == 'upgradeRange' ? 'upgrade your range' : 'add a heart'}?`, components: [{type: 1, components: [confirmButton]}]});
 }
 
 async function getInRangePlayers(player: Player, guild: Guild): Promise<Player[]> {
@@ -453,7 +516,7 @@ async function death(player: Player, user: User, client: Client): Promise<void> 
 
 async function getPlayerStatsEmbed(player: Player): Promise<Partial<Embed>> {
     let embed: Partial<Embed> = {
-        title: player.username,
+        title: player.displayName,
         fields: [
             {
                 name: 'Action Points',

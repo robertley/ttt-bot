@@ -3,7 +3,6 @@ import { attack } from "../../modules/player";
 import { doActionEvents } from "../../modules/bot";
 import { AttackData } from "../../interfaces/action-response.interace";
 
-// TODO confirm option
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('ap-attack')
@@ -19,7 +18,7 @@ module.exports = {
             return;
         }
         
-        let message = `Attacked ${target.username}! AP remaining: ${resp.player.actionPoints}`;
+        let message = `Attacked ${target.displayName}! AP remaining: ${resp.player.actionPoints}`;
         await interaction.editReply({ content: message });
         await doActionEvents({
             guild: interaction.guild,
@@ -36,7 +35,7 @@ module.exports = {
                 actionResponse: {
                     success: true,
                     error: null,
-                    message: `You have been defeated by ${interaction.user.username}`,
+                    message: `You have been defeated by ${interaction.user.displayName}`,
                     player: targetPlayer,
                     action: 'death',
                     data: null,

@@ -1,7 +1,7 @@
 import { DBObject } from "./db-object.interface";
 
 export interface Player extends DBObject {
-    username: string;
+    displayName: string;
     actionPoints: number;
     health: number;
     range: number;
@@ -9,4 +9,5 @@ export interface Player extends DBObject {
     secretChannelId: string;
     diedDate: Date;
     kills: string[];
+    brainOrBrawn: 'brain' | 'brawn';
 }

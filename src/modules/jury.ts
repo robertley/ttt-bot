@@ -24,7 +24,7 @@ async function createJuryVote(guild: Guild): Promise<void> {
         buttons.push({
             type: 2,
             style: 2,
-            label: `\n${player.emoji} ${player.username} 0`,
+            label: `\n${player.emoji} ${player.displayName} 0`,
             custom_id: player.id,
         });
     }
@@ -115,7 +115,7 @@ async function handleVoteButton(interaction: ButtonInteraction): Promise<void> {
         return {
             type: 2,
             style: 2,
-            label: `${player.emoji} ${player.username} ${count}`,
+            label: `${player.emoji} ${player.displayName} ${count}`,
             customId: player.id,
             disabled: false,
         };

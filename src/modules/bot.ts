@@ -96,8 +96,8 @@ async function updateBoardChannel(guild: Guild): Promise<Buffer> {
     }
 
     for (let player of alivePlayers) {
-        if (player.username.length > colLengths[0]) {
-            colLengths[0] = player.username.length;
+        if (player.displayName.length > colLengths[0]) {
+            colLengths[0] = player.displayName.length;
         }
 
         if (player.kills.length > colLengths[3]) {
@@ -114,7 +114,7 @@ async function updateBoardChannel(guild: Guild): Promise<Buffer> {
         if (player.health == 0) {
             healthString = 'DEAD';
         }
-        playerString += `${player.username.padEnd(colLengths[0], pad)} | ${player.range.toString().padEnd(colLengths[1], pad)} | ${player.health.toString().padEnd(colLengths[2], pad)} | ${player.kills.join('').padEnd(colLengths[3], pad)} | ${player.emoji}\n`;
+        playerString += `${player.displayName.padEnd(colLengths[0], pad)} | ${player.range.toString().padEnd(colLengths[1], pad)} | ${player.health.toString().padEnd(colLengths[2], pad)} | ${player.kills.join('').padEnd(colLengths[3], pad)} | ${player.emoji}\n`;
     }
 
     playerString += '```';
@@ -147,7 +147,7 @@ async function updateBoardChannel(guild: Guild): Promise<Buffer> {
             } else {
                 placeString = `${place}th`;
             }
-            deadStrings.push(`${placeString} | ${player.username} ${player.emoji}\n`);
+            deadStrings.push(`${placeString} | ${player.displayName} ${player.emoji}\n`);
         }
         deadStrings.reverse();
         deadString += deadStrings.join('');
@@ -254,7 +254,7 @@ async function logAction(client: Client, action: ActionResponse): Promise<void> 
 async function createSecretPlayerChannel(guild: Guild, player: Player): Promise<string> {
 
     let channel = await guild.channels.create({
-        name: `${player.emoji}-${player.username}-secret`,
+        name: `${player.emoji}-${player.displayName}-secret`,
         type: ChannelType.GuildText,
         permissionOverwrites: [
             {
@@ -365,31 +365,13 @@ async function updateSecretPlayerChannel(guild: Guild, player: Player): Promise<
 
 async function addPlayerControlButtons(guild: Guild, player: Player): Promise<void> {
     let channel = guild.channels.cache.get(player.secretChannelId) as TextChannel;
-    let leftButton = {
+
+    let moveButton = {
         type: 2,
         style: 1,
-        label: 'Left',
-        custom_id: `ap-move-left`,
+        label: 'Move',
+        custom_id: `ap-movePanel`,
     }
-    let rightButton = {
-        type: 2,
-        style: 1,
-        label: 'Right',
-        custom_id: `ap-move-right`,
-    }
-    let upButton = {
-        type: 2,
-        style: 1,
-        label: 'Up',
-        custom_id: `ap-move-up`,
-    }
-    let downButton = {
-        type: 2,
-        style: 1,
-        label: 'Down',
-        custom_id: `ap-move-down`,
-    }
-    await channel.send({ content: 'Move', components: [{type: 1, components: [leftButton, rightButton, upButton, downButton]}]});
 
     let attackButton = {
         type: 2,
@@ -409,17 +391,17 @@ async function addPlayerControlButtons(guild: Guild, player: Player): Promise<vo
         type: 2,
         style: 1,
         label: 'Upgrade Range',
-        custom_id: `ap-upgradeRange`,
+        custom_id: `ap-upgradeRangePanel`,
     }
 
     let healButton = {
         type: 2,
         style: 1,
         label: 'Gain Heart',
-        custom_id: `ap-heal`,
+        custom_id: `ap-healPanel`,
     }
 
-    await channel.send({ content: 'Actions', components: [{type: 1, components: [attackButton, sendAPButton, upgradeRangeButton, healButton]}]});
+    await channel.send({ content: 'Actions', components: [{type: 1, components: [moveButton, attackButton, sendAPButton, upgradeRangeButton, healButton]}]});
 
 }
 

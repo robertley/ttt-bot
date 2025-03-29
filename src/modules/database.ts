@@ -2,6 +2,7 @@ import { Client, Guild } from "discord.js";
 import { existsSync, mkdirSync, readFile, writeFile } from "node:fs";
 import { makeEmptyBoard } from "./board";
 import { DBObject } from "../interfaces/db-object.interface";
+import { env } from "node:process";
 
 export type DBKey = 'board' | 'player' | 'game' | 'jury-vote';
 
@@ -17,6 +18,16 @@ async function initNewServer(guild: Guild) {
     }
 
     await initFiles(guild);
+
+    // find all players with Player Role and Jury Role and remove those roles
+    let playerRole  = await guild.roles.fetch(process.env.PLAYER_ROLE_ID);
+    let juryRole = await guild.roles.fetch(process.env.JURY_ROLE_ID);
+    let players = guild.members.cache.filter(member => member.roles.cache.has(process.env.PLAYER_ROLE_ID) || member.roles.cache.has(process.env.JURY_ROLE_ID));
+    players.forEach(async player => {
+        await player.roles.remove(playerRole);
+        await player.roles.remove(juryRole);
+    });
+
 }
 
 async function initFiles(guild: Guild) {

@@ -2,7 +2,6 @@ import { CommandInteraction, SlashCommandBuilder } from "discord.js";
 import { giveAP } from "../../modules/player";
 import { doActionEvents} from "../../modules/bot";
 
-// TODO confirm option
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('ap-give-ap')
@@ -18,7 +17,7 @@ module.exports = {
             return;
         }
         
-        let message = `Gave ${target.username} 1 AP! AP remaining: ${resp.player.actionPoints}`;
+        let message = `Gave ${target.displayName} 1 AP! AP remaining: ${resp.player.actionPoints}`;
         await interaction.editReply({ content: message });
         await doActionEvents({
             guild: interaction.guild,

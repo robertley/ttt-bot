@@ -29,7 +29,7 @@ module.exports = {
 
         let user = interaction.options.get('player').user;
         try {
-            await interaction.editReply(`Adding player ${user.username} to the game...`);
+            await interaction.editReply(`Adding player ${user.displayName} to the game...`);
 
             // test emoji
             const emoji = interaction.options.get('emoji').value;
@@ -50,7 +50,7 @@ module.exports = {
             }
 
             await createNewPlayer(user, interaction.guild, interaction.options.get('emoji').value);
-            await interaction.editReply(`Player ${user.username} added to the game!`);
+            await interaction.editReply(`Player ${user.displayName} added to the game!`);
 
             setTimeout(async () => {
                 await updateBoardChannel(interaction.guild);
