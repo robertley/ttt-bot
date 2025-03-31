@@ -4,7 +4,7 @@ import { makeEmptyBoard } from "./board";
 import { DBObject } from "../interfaces/db-object.interface";
 import { env } from "node:process";
 
-export type DBKey = 'board' | 'player' | 'game' | 'jury-vote';
+export type DBKey = 'board' | 'player' | 'game' | 'jury-vote' | 'player-name-record';
 
 async function initNewServer(guild: Guild) {
     const directory = `./data/${guild.id}`;
@@ -35,6 +35,9 @@ async function initFiles(guild: Guild) {
     truncate('player', guild);
     truncate('game', guild);
     truncate('jury-vote', guild);
+    if (!existsSync(`./data/${guild.id}/player-name-record.json`)) {
+        truncate('player-name-record', guild);
+    }
 }
 
 async function getObjectFromFile(path: string): Promise<Map<string, DBObject>> {
