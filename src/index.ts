@@ -3,12 +3,7 @@ import {
     Collection,
     Events,
     GatewayIntentBits,
-    ModalBuilder,
-    TextInputBuilder,
-    TextInputStyle,
-    ActionRowBuilder,
     Partials,
-    TextChannel
 } from 'discord.js';
 import path from 'path';
 import * as fs from 'fs';
@@ -18,6 +13,7 @@ import { scheduleJob } from 'node-schedule';
 import { giveAP, handleAPButton } from './modules/player';
 import { givePlayersActionPoints } from './modules/game';
 import { updateAllSecretPlayerChannels } from './modules/bot';
+import { initScheduledJobs } from './modules/scheduler';
 const TOKEN = process.env.TOKEN;
 
 // TODO
@@ -148,7 +144,9 @@ client.on(Events.MessageCreate, async message => {
     // console.log(message.content);
 });
 
-client.login(TOKEN);
+client.login(TOKEN).then(() => {
+    initScheduledJobs(client.guilds.cache.first());
+});
 
 //#endregion
 
@@ -161,13 +159,8 @@ client.login(TOKEN);
 //   // do your stuff here
 // }, the_interval);
 
-const giveAPJob = scheduleJob('0 12 * * *', async function() {
-    let guild = client.guilds.cache.first();
-    await givePlayersActionPoints(guild);
-    setTimeout(async () => {
-        await updateAllSecretPlayerChannels(guild);
-    });
-});
+// when guild is initialized init jobs
+
 
 // const createJuryVoteJob = scheduleJob('*/1 * * * *', async function() {
 //     console.log('Checking for jury vote');

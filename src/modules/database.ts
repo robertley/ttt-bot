@@ -3,8 +3,10 @@ import { existsSync, mkdirSync, readFile, writeFile } from "node:fs";
 import { makeEmptyBoard } from "./board";
 import { DBObject } from "../interfaces/db-object.interface";
 import { env } from "node:process";
+import { Settings } from "../interfaces/settings.interface";
+import { updateSettingsChannel } from "./bot";
 
-export type DBKey = 'board' | 'player' | 'game' | 'jury-vote' | 'player-name-record';
+export type DBKey = 'board' | 'player' | 'game' | 'jury-vote' | 'player-name-record' | 'settings';
 
 async function initNewServer(guild: Guild) {
     const directory = `./data/${guild.id}`;
@@ -31,12 +33,22 @@ async function initNewServer(guild: Guild) {
 }
 
 async function initFiles(guild: Guild) {
-    truncate('board', guild);
-    truncate('player', guild);
-    truncate('game', guild);
-    truncate('jury-vote', guild);
+    await truncate('board', guild);
+    await truncate('player', guild);
+    await truncate('game', guild);
+    await truncate('jury-vote', guild);
     if (!existsSync(`./data/${guild.id}/player-name-record.json`)) {
-        truncate('player-name-record', guild);
+        await truncate('player-name-record', guild);
+    }
+    if (!existsSync(`./data/${guild.id}/settings.json`)) {
+        await truncate('settings', guild);
+        let settings: Settings = {
+            id: '1',
+            apScheduleCron: '0 12 * * *',
+            juryOpenScheduleCron: '0 14 * * *',
+        }
+        await set('settings', guild, settings);
+        await updateSettingsChannel(guild);
     }
 }
 
@@ -95,7 +107,7 @@ async function getAll(key: DBKey, guild: Guild): Promise<Map<string, DBObject>> 
     return await getObjectFromFile(path);
 }
 
-async function getById(key: DBKey, guild: Guild, id: string) {
+async function getById(key: DBKey, guild: Guild, id: string = '1'): Promise<DBObject> {
     let objects = await getAll(key, guild);
     return objects.get(id);
 }

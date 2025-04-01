@@ -3,9 +3,10 @@ import { drawBoard, drawBoardCanvas, drawPlayerBoard } from "./board";
 import { getAll, getById, set } from "./database";
 import { Player } from "../interfaces/player.interface";
 import { ActionResponse, AttackData, MoveData } from "../interfaces/action-response.interace";
-import { getPlayerStatsEmbed } from "./player";
+import { death, getPlayerStatsEmbed } from "./player";
 import { send } from "process";
 import { getDeleteMeButton } from "./functions";
+import { ScheduledJob, scheduleServerJob } from "./scheduler";
 
 async function doActionEvents(opts: {
     guild: Guild,
@@ -42,6 +43,11 @@ async function doActionEvents(opts: {
     if (actionResponse != null) {
         await logAction(guild.client, actionResponse);
     }
+
+    if (actionResponse.action == 'attack' && actionResponse.success == true && (actionResponse.data as AttackData).target.health == 0) {
+        await killPlayerEvents(guild, player, (actionResponse.data as AttackData).target);
+    }
+        
 }
 
 async function updateBoardChannel(guild: Guild): Promise<Buffer> {
@@ -88,25 +94,29 @@ async function updateBoardChannel(guild: Guild): Promise<Buffer> {
     });
 
 
-    let headers = ['', 'Range', 'Hearts', 'Kills', ''];
+    let headers = ['', 'R', '<3', 'K', ''];
     let colLengths = [];
 
     for (let header of headers) {
         colLengths.push(header.length);
     }
 
+    let maxNameLength = 7;
+
     for (let player of alivePlayers) {
         if (player.displayName.length > colLengths[0]) {
-            colLengths[0] = player.displayName.length;
+            colLengths[0] = Math.min(player.displayName.length, maxNameLength);
         }
 
-        if (player.kills.length > colLengths[3]) {
-            colLengths[3] = player.kills.length;
-        }
+        // if (player.kills.length > colLengths[3]) {
+        //     colLengths[3] = player.kills.length;
+        // }
     }
 
     let playerString = '```';
     let pad = ' ';
+
+
 
     playerString += `${headers[0].padEnd(colLengths[0], pad)} | ${headers[1].padEnd(colLengths[1], pad)} | ${headers[2].padEnd(colLengths[2], pad)} | ${headers[3].padEnd(colLengths[3], pad)} | ${headers[4].padEnd(colLengths[4], pad)}\n`;
     for (let player of alivePlayers) {
@@ -114,7 +124,8 @@ async function updateBoardChannel(guild: Guild): Promise<Buffer> {
         if (player.health == 0) {
             healthString = 'DEAD';
         }
-        playerString += `${player.displayName.padEnd(colLengths[0], pad)} | ${player.range.toString().padEnd(colLengths[1], pad)} | ${player.health.toString().padEnd(colLengths[2], pad)} | ${player.kills.join('').padEnd(colLengths[3], pad)} | ${player.emoji}\n`;
+
+        playerString += `${player.displayName.padEnd(colLengths[0], pad).slice(0, maxNameLength)} | ${player.range.toString().padEnd(colLengths[1], pad)} | ${player.health.toString().padEnd(colLengths[2], pad)} | ${player.kills.length} | ${player.emoji}\n`;
     }
 
     playerString += '```';
@@ -247,7 +258,7 @@ async function logAction(client: Client, action: ActionResponse): Promise<void> 
         files.push(boardCanvas);
     }
 
-    channel.send({ content: actionMessage, files: files });
+    await channel.send({ content: actionMessage, files: files });
     
 }
 
@@ -421,6 +432,11 @@ async function sendPlayerNotification(guild: Guild, player: Player, message: str
 }
 
 async function killPlayerEvents(guild: Guild, player: Player, target: Player): Promise<void> {
+
+    target.diedDate = new Date();
+
+    await death(target, guild.client);
+
     let targetAP = target.actionPoints;
     let earnedAP = Math.floor(targetAP / 2);
     player.actionPoints += earnedAP;
@@ -430,24 +446,57 @@ async function killPlayerEvents(guild: Guild, player: Player, target: Player): P
 
     let targetUser = guild.members.cache.get(target.id).user;
 
-    setTimeout(async () => {
-        await doActionEvents({
-            guild: guild,
-            user: targetUser,
-            actionResponse: {
-                success: true,
-                error: null,
-                message: null,
-                player: target,
-                action: 'death',
-                data: null,
-            }
-        });
+
+    await doActionEvents({
+        guild: guild,
+        user: targetUser,
+        actionResponse: {
+            success: true,
+            error: null,
+            message: null,
+            player: target,
+            action: 'death',
+            data: null,
+        }
     });
 
 
-    sendPlayerNotification(guild, player, `You have killed ${target.emoji} <@${target.id}> and earned ${earnedAP} AP`);
-    sendPlayerNotification(guild, target, `You have been killed by ${player.emoji} <@${player.id}>`);
+    await sendPlayerNotification(guild, player, `You have killed ${target.emoji} <@${target.id}> and earned ${earnedAP} AP`);
+    await sendPlayerNotification(guild, target, `You have been killed by ${player.emoji} <@${player.id}>`);
+
+    await updateSecretPlayerChannel(guild, player);
+}
+
+async function updateSetting(guild: Guild, key: string, value: string): Promise<void> {
+    let settings = await getById('settings', guild, '1');
+    settings[key] = value;
+    await set('settings', guild, settings);
+    await updateSettingsChannel(guild);
+
+    if (key == 'apScheduleCron' || key == 'juryOpenScheduleCron') {
+        let job: ScheduledJob = key == 'apScheduleCron' ? 'distributeApJob' : 'juryOpenJob';
+
+        await scheduleServerJob(job, value);
+    }
+}
+
+async function updateSettingsChannel(guild: Guild): Promise<void> {
+    let channel = guild.channels.cache.get(process.env.SETTINGS_CHANNEL_ID) as TextChannel;
+    let settings = await getById('settings', guild, '1');
+    if (settings == null) {
+        return;
+    }
+    
+    // get first message
+    let messages = await channel.messages.fetch();
+    let messageArray = Array.from(messages.values());
+    let settingsMessage = `\`\`\`${JSON.stringify(settings, null, 2)}\`\`\``;
+    if (messageArray.length == 0) {
+        await channel.send(settingsMessage);
+        return;
+    }
+    let targetMessage = messageArray[messageArray.length - 1];
+    await targetMessage.edit(settingsMessage);
 }
 
 export {
@@ -460,5 +509,7 @@ export {
     createSecretGroupChannel,
     addUserToSecretChannel,
     removeUserFromSecretChannel,
-    killPlayerEvents
+    killPlayerEvents,
+    updateSettingsChannel,
+    updateSetting
 };

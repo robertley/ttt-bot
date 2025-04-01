@@ -141,7 +141,7 @@ async function handleAPButton(interaction: ButtonInteraction) {
         actionResponse: resp
     });
 
-    interaction.editReply({ content: message });
+    await interaction.editReply({ content: message });
 }
 
 async function openAttackSendAPPanel(interaction: ButtonInteraction, type: 'attack' | 'sendAp') {
@@ -374,15 +374,7 @@ async function attack(user: User, target: User, guild: Guild): Promise<ActionRes
     targetPlayer.health--;
     player.actionPoints--;
 
-    if (targetPlayer.health == 0) {
-        await death(targetPlayer, target, guild.client);
-        targetPlayer.diedDate = new Date();
-        // player gets saved from killPlayerEvents
-        await killPlayerEvents(guild, player, targetPlayer);
-    } else {
-        await set('player', guild, player);
-    }
-
+    await set('player', guild, player);
     await set('player', guild, targetPlayer);
 
     return action;
@@ -486,10 +478,12 @@ async function giveAP(user: User, target: User, guild: Guild): Promise<ActionRes
     return action;
 }
 
-async function death(player: Player, user: User, client: Client): Promise<void> {
+async function death(player: Player, client: Client): Promise<void> {
     if (player.health != 0) {
         return;
     }
+
+    let user = await client.users.fetch(player.id);
 
     // remove PLAYER role and add JURY role
     let guild = client.guilds.cache.first();
@@ -613,4 +607,4 @@ function aliveCheck(player: Player): boolean {
     return player.health > 0;
 }
 
-export { createNewPlayer, move, attack, getPlayerStatsEmbed, upgradeRange, addHeart, giveAP, handleAPButton }
+export { createNewPlayer, move, attack, getPlayerStatsEmbed, upgradeRange, addHeart, giveAP, handleAPButton, death }
