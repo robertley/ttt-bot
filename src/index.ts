@@ -145,7 +145,12 @@ client.on(Events.MessageCreate, async message => {
 });
 
 client.login(TOKEN).then(() => {
-    initScheduledJobs(client.guilds.cache.first());
+    try {
+        initScheduledJobs(client.guilds.cache.first());
+    } catch {
+        console.log('failed to init scheduled jobs');
+    }
+
 });
 
 //#endregion

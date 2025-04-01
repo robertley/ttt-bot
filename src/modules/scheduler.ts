@@ -10,7 +10,14 @@ type ScheduledJob = 'distributeApJob' | 'juryOpenJob';
 const jobMap: Map<ScheduledJob, scheduleJob> = new Map()
 
 async function initScheduledJobs(guild: Guild) {
-    let settings = await getById('settings', guild, '1') as Settings;
+    let settings;
+    try {
+        let settings = await getById('settings', guild, '1') as Settings;
+    } catch {
+        console.error('Error fetching settings from database');
+        return;
+    }
+
     if (!settings) {
         throw new Error('Settings not found');
     }
