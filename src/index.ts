@@ -144,11 +144,11 @@ client.on(Events.MessageCreate, async message => {
     // console.log(message.content);
 });
 
-client.login(TOKEN).then(() => {
+client.login(TOKEN).then(async () => {
     try {
-        initScheduledJobs(client.guilds.cache.first());
-    } catch {
-        console.log('failed to init scheduled jobs');
+        await initScheduledJobs(client.guilds.cache.first());
+    } catch (error) {
+        console.error(error);
     }
 
 });

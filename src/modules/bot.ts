@@ -476,7 +476,7 @@ async function updateSetting(guild: Guild, key: string, value: string): Promise<
     if (key == 'apScheduleCron' || key == 'juryOpenScheduleCron') {
         let job: ScheduledJob = key == 'apScheduleCron' ? 'distributeApJob' : 'juryOpenJob';
 
-        await scheduleServerJob(job, value);
+        await scheduleServerJob(job, value, guild);
     }
 }
 

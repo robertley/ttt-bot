@@ -10,26 +10,20 @@ type ScheduledJob = 'distributeApJob' | 'juryOpenJob';
 const jobMap: Map<ScheduledJob, scheduleJob> = new Map()
 
 async function initScheduledJobs(guild: Guild) {
-    let settings;
-    try {
-        let settings = await getById('settings', guild, '1') as Settings;
-    } catch {
-        console.error('Error fetching settings from database');
-        return;
-    }
+    let settings = await getById('settings', guild, '1') as Settings;
 
     if (!settings) {
-        throw new Error('Settings not found');
+        throw new Error(`Settings not found - ${guild.id}`);
     }
 
     const apScheduleCron = settings.apScheduleCron;
     const juryOpenScheduleCron = settings.juryOpenScheduleCron;
 
-    await scheduleServerJob('distributeApJob', apScheduleCron);
-    await scheduleServerJob('juryOpenJob', juryOpenScheduleCron);
+    await scheduleServerJob('distributeApJob', apScheduleCron, guild);
+    await scheduleServerJob('juryOpenJob', juryOpenScheduleCron, guild);
 }
 
-async function scheduleServerJob(job: ScheduledJob, cronTime: string) {
+async function scheduleServerJob(job: ScheduledJob, cronTime: string, guild: Guild) {
     let jobCallback = jobMap.get(job);
     if (jobCallback) {
         jobCallback.cancel(); // Cancel the existing job if it exists
@@ -37,10 +31,10 @@ async function scheduleServerJob(job: ScheduledJob, cronTime: string) {
 
     switch (job) {
         case 'distributeApJob':
-            jobCallback = distributeApJob;
+            jobCallback = distributeApJob.bind(this, guild);
             break;
         case 'juryOpenJob':
-            jobCallback = juryOpenJob;
+            jobCallback = juryOpenJob.bind(this, guild);;
             break;
         default:
             throw new Error('Unknown job type');
