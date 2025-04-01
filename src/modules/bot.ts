@@ -206,7 +206,7 @@ async function logAction(client: Client, action: ActionResponse): Promise<void> 
 
     switch (action.action) {
         case 'new-game':
-            actionMessage = `New game started, good luck!`;
+            actionMessage = `<@&${process.env.PLAYER_ROLE_ID}> New game started, good luck!`;
             break;
         case 'move':
             data = action.data as MoveData;

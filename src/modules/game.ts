@@ -28,20 +28,38 @@ export async function newGame(guild: Guild): Promise<void> {
         winnerId: null
     }
 
-    // TODO make this smart
-    // give all players a random position on the board
-    let playerPositions = [];
-    for (let i = 0; i < playerIds.length; i++) {
-        let x = Math.floor(Math.random() * 10);
-        let y = Math.floor(Math.random() * 10);
-        playerPositions.push({x: x, y: y});
+    // TODO make this smarter ?
+    let playerPositions;
+    let allowedAttempts = 10;
+    let attempts = 0;
+
+    console.log('Creating player positions...', playerIds);
+
+    let positionsFound = false;
+    while (!positionsFound && attempts < allowedAttempts) {
+        attempts++;
+        console.log('Trying to find unique player positions...');
+        playerPositions = createPlayerPositions(playerIds);
+
+        // check if playerPositions are unique
+        let uniquePositions = new Set(playerPositions.map(p => JSON.stringify(p)));
+        if (uniquePositions.size === playerPositions.length) {
+            positionsFound = true;
+        }
     }
+
+    if (attempts === allowedAttempts) {
+        console.error('Could not find unique player positions after 10 attempts');
+        throw new Error('Could not find unique player positions after 10 attempts');
+    }
+
+    console.log('Player positions created', playerPositions);
 
     for (let i in playerPositions) {
         let position = playerPositions[i];
         let playerId = playerIds[i];
         board.tile[position.x][position.y] = playerId;
-        // console.log(`Player ${playerId} placed at ${position.x}, ${position.y}`);
+        console.log(`Player ${playerId} placed at ${position.x}, ${position.y}`);
     }
 
 
@@ -54,11 +72,17 @@ export async function newGame(guild: Guild): Promise<void> {
     // for (let message of messages.values()) {
     //     await message.delete();
     // }
+}
 
-    logAction(guild.client, {
-        success: true,
-        action: 'new-game',
-    });
+function createPlayerPositions(playerIds: string[]): { x: number, y: number }[] {
+    let playerPositions = [];
+    for (let i = 0; i < playerIds.length; i++) {
+        let x = Math.floor(Math.random() * 10);
+        let y = Math.floor(Math.random() * 10);
+        playerPositions.push({x: x, y: y});
+    }
+
+    return playerPositions;
 }
 
 export async function givePlayersActionPoints(guild: Guild): Promise<void> {
