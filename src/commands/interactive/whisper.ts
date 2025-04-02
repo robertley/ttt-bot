@@ -30,7 +30,7 @@ module.exports = {
         }
 
         await targetPlayerChannel.send({
-            content: `${target} - "*${interaction.options.get('message').value}*"`, components: [{type: 1, components: [getDeleteMeButton()]}]
+            content: `${target} - Someone whispered to you: "*${interaction.options.get('message').value}*"`, components: [{type: 1, components: [getDeleteMeButton()]}]
         });
 
         await interaction.editReply({

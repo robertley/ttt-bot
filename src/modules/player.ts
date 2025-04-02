@@ -178,9 +178,16 @@ async function openAttackSendAPPanel(interaction: ButtonInteraction, type: 'atta
     }
 
     let message = `Select a player to ${type == 'attack' ? 'attack' : 'send an AP'}`;
-    for (let group of buttonGroups) {
-        // group.push(getDeleteMeButton());
-        await interaction.editReply({ content: message, components: [{type: 1, components: group}] });
+    if (buttonGroups.length == 0) {
+        await interaction.editReply({ content: message, components: [{type: 1, components: buttonGroups[0]}] });
+    }
+    for (let i in buttonGroups) {
+        let group = buttonGroups[i];
+        if (+i == 0) {
+            await interaction.editReply({ content: message, components: [{type: 1, components: group}] });
+            continue;
+        }
+        await interaction.followUp({components: [{type: 1, components: group}], ephemeral: true })
     }
     
 }
