@@ -14,6 +14,7 @@ import { giveAP, handleAPButton } from './modules/player';
 import { givePlayersActionPoints } from './modules/game';
 import { updateAllSecretPlayerChannels } from './modules/bot';
 import { initScheduledJobs } from './modules/scheduler';
+import { queueService } from './commands/system/queue-service';
 const TOKEN = process.env.TOKEN;
 
 // TODO
@@ -152,6 +153,25 @@ client.login(TOKEN).then(async () => {
     }
 
 });
+
+// async function A(print: 'A') {
+//     await new Promise((res) => setTimeout(() => res(null), 1000));
+//     console.log(print);
+//   }
+  
+//   async function B(print: 'B') {
+//     await new Promise((res) => setTimeout(() => res(null), 1000));
+//     console.log(print);
+//   }
+  
+//   async function C(print: 'C') {
+//     await new Promise((res) => setTimeout(() => res(null), 1000));
+//     console.log(print);
+//   }
+
+// queueService.addHighPriority(() => A('A'));
+// queueService.addHighPriority(() => B('B'));
+// queueService.addHighPriority(() => C('C'));
 
 //#endregion
 

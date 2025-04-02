@@ -7,6 +7,7 @@ import { death, getPlayerStatsEmbed } from "./player";
 import { send } from "process";
 import { getDeleteMeButton } from "./functions";
 import { ScheduledJob, scheduleServerJob } from "./scheduler";
+import { queueService } from "../commands/system/queue-service";
 
 async function doActionEvents(opts: {
     guild: Guild,
@@ -18,12 +19,10 @@ async function doActionEvents(opts: {
     let { guild, user, target, actionResponse } = opts;
 
     let player = await getById('player', guild, user.id) as Player;
-    await updateBoardChannel(guild);
+    queueService.addToQueue(() => 
+        updateBoardChannel(guild), 5,
+    'update-board-channel');
     await updateSecretPlayerChannel(guild, player);
-    
-    if (opts?.actionResponse?.action == 'move') {
-        await updateAllSecretPlayerChannels(guild);
-    }
     
     let channel;
 

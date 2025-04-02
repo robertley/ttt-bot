@@ -3,10 +3,11 @@ import { Player } from "../interfaces/player.interface";
 import { set, getById, getAll } from "./database";
 import { ActionResponse } from "../interfaces/action-response.interace";
 import { Board } from "../interfaces/board.interface";
-import { createSecretPlayerChannel, doActionEvents, killPlayerEvents } from "./bot";
+import { createSecretPlayerChannel, doActionEvents, killPlayerEvents, updateAllSecretPlayerChannels } from "./bot";
 import { tileIsInRange } from "./board";
 import { addPlayerToJury } from "./jury";
 import { getDeleteMeButton } from "./functions";
+import { queueService } from "../commands/system/queue-service";
 
 async function createNewPlayer(user: User, guild: Guild, emoji): Promise<Player> {
     let existingPlayer = await getById('player', guild, user.id) as Player;
@@ -133,13 +134,20 @@ async function handleAPButton(interaction: ButtonInteraction) {
 
     message +=  ` AP remaining: ${resp.player.actionPoints}`;
 
-    
-    await doActionEvents({
-        guild: interaction.guild, 
-        user: interaction.user, 
-        target: targetUser,
-        actionResponse: resp
-    });
+    queueService.addHighPriority(() =>
+        doActionEvents({
+            guild: interaction.guild, 
+            user: interaction.user, 
+            target: targetUser,
+            actionResponse: resp
+        })
+    );
+
+    if (action == 'move') {
+        queueService.addLowPriority(() =>
+            updateAllSecretPlayerChannels(interaction.guild),
+        'secret-player-channel-update');
+    }
 
     await interaction.editReply({ content: message });
 }
