@@ -75,10 +75,11 @@ export async function newGame(guild: Guild): Promise<void> {
 }
 
 function createPlayerPositions(playerIds: string[]): { x: number, y: number }[] {
+    let boardSize = +process.env.BOARD_SIZE || 10;
     let playerPositions = [];
     for (let i = 0; i < playerIds.length; i++) {
-        let x = Math.floor(Math.random() * 10);
-        let y = Math.floor(Math.random() * 10);
+        let x = Math.floor(Math.random() * boardSize);
+        let y = Math.floor(Math.random() * boardSize);
         playerPositions.push({x: x, y: y});
     }
 
