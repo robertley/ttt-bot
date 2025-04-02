@@ -7,7 +7,7 @@ import { death, getPlayerStatsEmbed } from "./player";
 import { send } from "process";
 import { getDeleteMeButton } from "./functions";
 import { ScheduledJob, scheduleServerJob } from "./scheduler";
-import { queueService } from "../commands/system/queue-service";
+import { queueService } from "./queue-service";
 
 async function doActionEvents(opts: {
     guild: Guild,

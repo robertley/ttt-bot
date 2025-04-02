@@ -14,7 +14,7 @@ import { giveAP, handleAPButton } from './modules/player';
 import { givePlayersActionPoints } from './modules/game';
 import { updateAllSecretPlayerChannels } from './modules/bot';
 import { initScheduledJobs } from './modules/scheduler';
-import { queueService } from './commands/system/queue-service';
+import { queueService } from './modules/queue-service';
 const TOKEN = process.env.TOKEN;
 
 // TODO
@@ -93,7 +93,7 @@ client.on(Events.InteractionCreate, async interaction => {
             await buttonHandler(interaction);
         } catch (error) {
             console.error(error);
-            interaction.editReply({ content: `Error: ${error} - contact bertboy` });
+            await interaction.editReply({ content: `Error: ${error} - contact bertboy` });
         }
         return;
     }
@@ -151,7 +151,10 @@ client.login(TOKEN).then(async () => {
     } catch (error) {
         console.error(error);
     }
-
+}).then(() => {
+    console.log('Bot is running');
+}).catch((error) => {
+    console.error('Error logging in:', error);
 });
 
 // async function A(print: 'A') {

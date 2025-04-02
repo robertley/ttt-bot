@@ -14,7 +14,7 @@ export async function newGame(guild: Guild): Promise<void> {
     let juryRole = guild.roles.cache.find(role => role.id === process.env.JURY_ROLE_ID);
     let users = guild.members.cache.filter(member => member.roles.cache.has(juryRole.id));
     for (let user of users.values()) {
-        user.roles.remove(juryRole);
+        await user.roles.remove(juryRole);
     }
 
     let board: Board = makeEmptyBoard();

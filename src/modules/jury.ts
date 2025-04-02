@@ -120,7 +120,7 @@ async function handleVoteButton(interaction: ButtonInteraction): Promise<void> {
             disabled: false,
         };
     });
-    interaction.update({ components: [{ type: 1, components: newButtons }] });
+    await interaction.update({ components: [{ type: 1, components: newButtons }] });
 
     
 }

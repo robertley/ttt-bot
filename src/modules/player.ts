@@ -7,7 +7,7 @@ import { createSecretPlayerChannel, doActionEvents, killPlayerEvents, updateAllS
 import { tileIsInRange } from "./board";
 import { addPlayerToJury } from "./jury";
 import { getDeleteMeButton } from "./functions";
-import { queueService } from "../commands/system/queue-service";
+import { queueService } from "./queue-service";
 
 async function createNewPlayer(user: User, guild: Guild, emoji): Promise<Player> {
     let existingPlayer = await getById('player', guild, user.id) as Player;
@@ -34,8 +34,8 @@ async function createNewPlayer(user: User, guild: Guild, emoji): Promise<Player>
 
     // give user PLAYER role
     let role = await guild.roles.fetch(process.env.PLAYER_ROLE_ID);
-    await guild.members.fetch(user.id).then(member => {
-        member.roles.add(role);
+    await guild.members.fetch(user.id).then(async member => {
+        await member.roles.add(role);
     });
 
 
@@ -51,7 +51,7 @@ async function createNewPlayer(user: User, guild: Guild, emoji): Promise<Player>
     });
 
 
-    set('player', guild, player);
+    await set('player', guild, player);
 
     return player;
 }
@@ -504,9 +504,9 @@ async function death(player: Player, client: Client): Promise<void> {
     let guild = client.guilds.cache.first();
     let pRole = await guild.roles.fetch(process.env.PLAYER_ROLE_ID);
     let jRole = await guild.roles.fetch(process.env.JURY_ROLE_ID);
-    await guild.members.fetch(user.id).then(member => {
-        member.roles.remove(pRole);
-        member.roles.add(jRole);
+    await guild.members.fetch(user.id).then(async member => {
+        await member.roles.remove(pRole);
+        await member.roles.add(jRole);
     });
     
     // await logAction(client, {

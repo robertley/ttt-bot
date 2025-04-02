@@ -14,7 +14,7 @@ module.exports = {
             await updateAllSecretPlayerChannels(interaction.guild);
         })
         
-        logAction(interaction.client, {
+        await logAction(interaction.client, {
             success: true,
             action: 'new-game',
         });

@@ -15,7 +15,7 @@ module.exports = {
     async execute(interaction: CommandInteraction): Promise<void> {
         await interaction.deferReply({ephemeral: true});
 
-        getById('player-name-record', interaction.guild, interaction.options.get('player').user.id).then(async (nameRecord: PlayerNameRecord) => {
+        await getById('player-name-record', interaction.guild, interaction.options.get('player').user.id).then(async (nameRecord: PlayerNameRecord) => {
             if (nameRecord) {
                 await interaction.editReply({ content: `The player's name is ${nameRecord.name}` });
             } else {

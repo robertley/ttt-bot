@@ -37,7 +37,10 @@ interface QueueItem {
     
     // Start processing the queue if it's not already running
     if (!isProcessing) {
-      processQueue();
+      processQueue().then(() => {
+      }).catch((error) => {
+        console.error('Error processing queue:', error);
+      });
     }
 
     return taskId;

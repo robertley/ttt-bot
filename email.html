@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> -->
+    <!-- <link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap" rel="stylesheet"> -->
+    <title>TANK TACTICS</title>
+    <style>
+
+        html {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            background-color: #1a1a1e;
+            color: white;
+            /* height: 100vh; */
+            /* width: 100vw; */
+        }
+        body {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        body {
+            padding: 0 2em;
+        }
+
+        h1 {
+            /* text-align: center; */
+            margin-top: 1em;
+            font-size: 3em;
+            margin-bottom: .25em;
+        }
+
+        h1, .tt-font {
+            font-family: "Alfa Slab One", serif;
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        .header-wrapper {
+            position: relative;
+        }
+
+        #headerBackground {
+            color: #c68a17;
+            position: absolute;
+            top: .1em;
+            margin: 0;
+            z-index: -1;
+            left: -.1em;
+        }
+
+        h2 {
+            /* text-align: center; */
+            margin-top: 0;
+            font-size: 2em;
+            margin-bottom: .25em;
+
+        }
+
+        h2.sub-header {
+            font-style: italic;
+        }
+
+        a {
+            color: #ffcc00;
+            text-decoration: none;
+        }
+        .rules-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .image-subtite {
+            display: block;
+            margin-top: .5em;
+            font-style: italic;
+        }
+        .img-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 1em;
+        }
+        #weff {
+            width: 350px;
+        }
+        section {
+            margin-bottom: 3em;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-wrapper">
+        <h1 id="headerBackground">TANK TACTICS</h1>
+        <h1>TANK TACTICS</h1>
+    </div>
+    <h2 class="sub-header">Outlive, Outlast, Be Tactical</h2>
+    <section>
+        <p>
+            Welcome to <span class="tt-font">TANK TACTICS</span>, (working title) a social game of strategy and tactics. The game will take place over several weeks.
+        </p>
+    
+        <p>
+            <span class="tt-font">TANK TACTICS</span> was inspired by a youtube video. You can watch the video <a href="https://www.youtube.com/watch?v=aOYbR-Q_4Hs" target="_blank">here</a>, if you want. At the <a href="https://youtu.be/aOYbR-Q_4Hs?si=I4mBWh0ykaX4A-q3&t=150" target="_blank">2:30</a> mark, the video does a good job of explaining the basics of the game, and even though the rules I have defined are slightly different, it will give you a general understanding of how it works.
+             At around the <a href="https://youtu.be/aOYbR-Q_4Hs?si=gROh4BoEAuA9_CJL&t=320" target="_blank">5:20</a> mark, the video explains how the game turned an office into madness.
+        </p>
+    </section>
+
+    <section>
+        <h2>RULES</h2>
+        <div class="img-container">
+            <img src="https://i.imgur.com/mRO0C1R.png" alt="board">
+            <span class="image-subtite">Example board</span>
+        </div>
+    
+        <p>
+            <ul>
+                <li>You will choose an emoji (your tank, ig), and that will represent your player on the board.</li>
+                <li>All players start at a random location on the grid, and have 3 hearts and 0 Action Points (AP).</li>
+                <li>The board is 20x20 and subject to change based on the number of players.</li>
+                <li>Every day at 12:00 PM EST, (subject to change) all alive will receive 1 AP.</li>
+                <li>At any time you like, if you have the AP, you can do one of the five actions:</li>
+                <ul>
+                    <li>Move to an adjacent, unoccupied square (1 AP)</li>
+                    <li>Shoot someone who is within your range (1 AP). Shooting someone removes 1 heart from their health.</li>
+                    <li>Give a player an AP who is within your range (1 AP) - to be clear, the spent AP is the one given</li>
+                    <li>Upgrade your range (3 AP)</li>
+                    <li>Add a heart (3 AP)</li>
+                </ul>
+                <li>At the start of the game, everyone has a range of 2. That is, they can shoot or give an AP to someone within 2 squares of them. Upgrading your shooting range increases this by 1 square each time.</li>
+                <li>If a player is reduced to 0 hearts, then they are dead. Half of the AP the dead player had (rounding down) are transferred to the player who killed them. Dead players remain on the board and are not removed.</li>
+                <li>Dead players form a jury, and each day can award bonus AP to players.</li>
+                <li>The board wraps, meaning moving down on the bottom most row will bring you to the top and vice versa. The same is true for the left and right side. Your range also wraps in this way.</li>
+            </ul>
+    
+            <h3>ADDITIONAL NOTES</h3>
+            <ul>
+                <li>Action points are secret! It is probably a good idea to hide how many you have. Your range and hearts can be seen by everyone.</li>
+                <li>Every action taken is logged publicly to all players, with the exception of one player giving another player an AP. Only the player receiving the AP will be notified.</li>
+                <li>There is no limit to the number of hearts a player can have.</li>
+            </ul>
+        </p>
+    
+        <p>The game mechanics are very simple. The complexity forms from forming alliances and coordinating attacks. After you gather many action points from allies, will you move forward with the plan or take out all of the allies who are already close to you and easier to eliminate?</p>
+        <p>That's the jist. There are more details on the jury, and other features of how the game works on the discord.</p>
+    
+        <h3>ENGAGEMENT NOTE</h3>
+    
+        <p>Players can engage with the game as little or as much as they want. Actions take very little time. Communicating/planning with other players will be almost all of the engagement with this game.
+            I am looking for players who want to be engaged, but I also want it to be clear that this game does not need to take up a lot of your time.
+        </p>
+    </section>
+    
+    <section>
+        <h2>MEET WEFF!</h2>
+        <div class="img-container">
+            <img id="weff" src="https://i.imgur.com/Vw63ysf.png" alt="weff">
+            <span class="image-subtite">Weff</span>
+        </div>
+
+        <p>
+            Weff is our host. He manages the server, keeps track of the game, the board, and all player's stats and actions.
+            He is also a bot. When you interact with the game you interact with Weff. He is a simple bot, but he is good at what he does. Be nice to Weff.
+        </p>
+    </section>
+
+    <section>
+        <h3>DISCLAIMER</h3>
+        <p>As this will be the first run of the game, there may be hiccups. Weff might decide to do something weird and disrupt the 24/7 game flow, or cause other issues. I am hopeful the game will run smoothly.</p>
+
+        <h3>DISCLAIMER 2</h3>
+        <p>If this game isn't for you, no worries! Please join only if you are really interested in playing!</p>
+    </section>
+
+    <section>
+        <h2>JOIN THE DISCORD</h2>
+        <p>
+            Joining the discord will act as your sign up for the game. There we can talk about when the game will start. I am thinking at some point next week.
+            I am looking for 10-16 players. If we are not able to get enough players, I will ask those who join to invite friends.
+        </p>
+        <p><a href="https://discord.gg/9QhjRFV3" target="_blank">CLICK HERE TO JOIN</a></p>
+    </section>
+</body>
+</html>

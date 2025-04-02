@@ -9,7 +9,7 @@ module.exports = {
         .setDescription('Attack another player. Costs 1 AP')
         .addUserOption(option => option.setName('target').setDescription('player you are attacking').setRequired(true)),
     async execute(interaction: CommandInteraction): Promise<void> {
-        interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ ephemeral: true });
         let target = interaction.options.get('target').user;
         let resp = await attack(interaction.user, target, interaction.guild);
         if (!resp.success) {
