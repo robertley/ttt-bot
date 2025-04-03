@@ -15,9 +15,9 @@ module.exports = {
         let target = interaction.options.get('player').user;
 
         let buttons = [];
-        if (player.secretChannelId == interaction.channelId) {
-            buttons.push(getDeleteMeButton());
-        }
+        // if (player.secretChannelId == interaction.channelId) {
+        //     buttons.push(getDeleteMeButton());
+        // }
 
         let targetPlayer = await getById('player', interaction.guild, target.id) as Player;
         let targetPlayerChannel = interaction.guild.channels.cache.get(targetPlayer.secretChannelId) as TextChannel;

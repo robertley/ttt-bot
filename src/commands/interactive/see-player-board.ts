@@ -23,7 +23,7 @@ module.exports = {
         let user = interaction.options.get('player').user;
         let player = await getById('player', interaction.guild, user.id) as Player;
         if (player == null) {
-            await interaction.editReply({ content: 'Player not found', components: [{type: 1, components: buttons}] });
+            await interaction.editReply({ content: 'Player not found', components: buttons.length > 0 ? [{type: 1, components: buttons}] : null });
             return;
         }
         let board = await drawBoardCanvas(interaction.guild, {
@@ -32,6 +32,6 @@ module.exports = {
 
 
 
-        await interaction.editReply({ files: [board], components: [{type: 1, components: buttons}] });
+        await interaction.editReply({ files: [board], components: buttons.length > 0 ? [{type: 1, components: buttons}] : null });
     },
 }
