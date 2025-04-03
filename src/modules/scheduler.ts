@@ -1,9 +1,13 @@
-import { Guild } from 'discord.js';
+import { Guild, TextChannel } from 'discord.js';
 import { scheduleJob } from 'node-schedule';
 import { givePlayersActionPoints } from './game';
 import { updateAllSecretPlayerChannels } from './bot';
-import { getById } from './database';
+import { getAll, getById, set } from './database';
 import { Settings } from '../interfaces/settings.interface';
+import { Player } from '../interfaces/player.interface';
+import { closeJury, finalizeJuryVote } from './jury';
+import { queueService } from './queue-service';
+import { queryObjects } from 'v8';
 
 type ScheduledJob = 'distributeApJob' | 'juryOpenJob';
 
@@ -34,6 +38,7 @@ async function scheduleServerJob(job: ScheduledJob, cronTime: string, guild: Gui
             jobCallback = distributeApJob.bind(this, guild);
             break;
         case 'juryOpenJob':
+            console.log(`Scheduling job ${job} with cron time ${cronTime}`);
             jobCallback = juryOpenJob.bind(this, guild);;
             break;
         default:
@@ -44,14 +49,35 @@ async function scheduleServerJob(job: ScheduledJob, cronTime: string, guild: Gui
 }
 
 async function distributeApJob(guild: Guild) {
-    await givePlayersActionPoints(guild);
-    setTimeout(async () => {
-        await updateAllSecretPlayerChannels(guild);
-    });
+    queueService.addHighPriority(async () => { await finalizeJuryVote(guild) });
+    queueService.addHighPriority(async () => { await closeJury(guild) });
+    queueService.addToQueue(async () => { await givePlayersActionPoints(guild) });
+    queueService.addLowPriority(async () => { await updateAllSecretPlayerChannels(guild) });
+    
+
+    // close the jury vote if it is open
+    let settings = await getById('settings', guild, '1') as Settings;
+    if (settings.juryOpen) {
+        settings.juryOpen = false;
+        await set('settings', guild, settings);
+    }
 }
 
 async function juryOpenJob(guild: Guild) {
-    console.log('Jury open job running...');
+    let players = await getAll('player', guild) as Map<string, Player>;
+    let deadPlayers = Array.from(players.values()).filter(p => p.health <= 0);
+
+    if (deadPlayers.length < 3) {
+        return;
+    }
+
+    let settings = await getById('settings', guild, '1') as Settings;
+    settings.juryOpen = true;
+    await set('settings', guild, settings);
+    
+    let channel = guild.channels.cache.get(process.env.JURY_CHANNEL_ID) as TextChannel;
+    let message = `<@&${process.env.JURY_ROLE_ID}> Jury vote is open! Please vote using the /ju-vote command`;
+    await channel.send({ content: message });
 }
 
 export { initScheduledJobs, scheduleServerJob, ScheduledJob };

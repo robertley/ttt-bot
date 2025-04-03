@@ -1,5 +1,7 @@
 import { CommandInteraction, GuildMember, SlashCommandBuilder, User } from "discord.js";
 import { juryVote } from "../../modules/jury";
+import { getById } from "../../modules/database";
+import { Settings } from "../../interfaces/settings.interface";
 
 
 // TODO refund votes if player dies
@@ -26,6 +28,12 @@ module.exports = {
             return;
         }
         
+        let settings = await getById('settings', interaction.guild) as Settings;
+        if (settings.juryOpen == false) {
+            await interaction.editReply({ content: "Jury is not open" });
+            return;
+        }
+
         hasRole = false;
 
         candidate?.roles.cache.forEach(role => {

@@ -2,7 +2,7 @@ import { APIEmbed, ButtonComponent, CategoryChannel, ChannelType, Client, Comman
 import { drawBoard, drawBoardCanvas, drawPlayerBoard } from "./board";
 import { getAll, getById, set } from "./database";
 import { Player } from "../interfaces/player.interface";
-import { ActionResponse, AttackData, MoveData } from "../interfaces/action-response.interace";
+import { ActionResponse, AttackData, JuryData, MoveData } from "../interfaces/action-response.interace";
 import { death, getPlayerStatsEmbed } from "./player";
 import { send } from "process";
 import { getDeleteMeButton } from "./functions";
@@ -229,10 +229,15 @@ async function logAction(client: Client, action: ActionResponse): Promise<void> 
             actionMessage += ` gained a heart ${action.player.health - 1} -> ${action.player.health}`;
             break;
         case 'jury-vote':
-            actionMessage = `<@&${process.env.PLAYER_ROLE_ID}> The <@&${process.env.JURY_ROLE_ID}> has awarded ${action.player.emoji} <@${action.player.id}> an extra AP`;
+            let playersMessages = [];
+            for (let player of (action.data  as JuryData).winners) {
+                playersMessages.push(`${player.emoji} <@${player.id}>`);
+            }
+            let playersString = playersMessages.join(', ');
+            actionMessage = `The <@&${process.env.JURY_ROLE_ID}> has awarded ${playersString} an extra AP`;
             break;
         case 'jury-fail':
-            actionMessage = `<@&${process.env.PLAYER_ROLE_ID}> The <@&${process.env.JURY_ROLE_ID}> failed to award an extra AP`;
+            actionMessage = `The <@&${process.env.JURY_ROLE_ID}> failed to award an extra AP`;
             break;
 
     }

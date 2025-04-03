@@ -4,6 +4,8 @@ import { JuryVote } from "../interfaces/jusy-vote.interface";
 import { Player } from "../interfaces/player.interface";
 import { ActionResponse } from "../interfaces/action-response.interace";
 import { logAction, updateSecretPlayerChannel } from "./bot";
+import { Settings } from "../interfaces/settings.interface";
+import { queueService } from "./queue-service";
 
 
 async function createJuryVote(guild: Guild): Promise<void> {
@@ -125,7 +127,6 @@ async function handleVoteButton(interaction: ButtonInteraction): Promise<void> {
     
 }
 
-// TODO any player with three votes gets the bonus AP
 async function finalizeJuryVote(guild: Guild): Promise<ActionResponse> {
     let response: ActionResponse = {
         action: 'jury-vote',
@@ -135,37 +136,44 @@ async function finalizeJuryVote(guild: Guild): Promise<ActionResponse> {
 
     let votes = await getAll('jury-vote', guild) as Map<string, JuryVote>;
     let voteCount = countVotes(votes);
-    // console.log(voteCount);
     let winners = [];
     let winnerCount = 0;
     for (let [playerId, count] of voteCount) {
-        if (count == winnerCount) {
+        if (count >= 3) {
             winners.push(playerId);
-            continue;
-        }
-        if (count > winnerCount) {
-            winners.length = 0;
-            winnerCount = count;
-            winners.push(playerId);
+            winnerCount++;
         }
     }
 
-    if (winners.length != 1) {
+    if (winners.length < 1) {
         response.action = 'jury-fail';
-    } else {
-        let winner = await getById('player', guild, winners[0]) as Player;
+    }
+
+    response.data = {
+        winners: [],
+    }
+    for (let winnerId of winners) {
+        let winner = await getById('player', guild, winnerId) as Player;
         winner.actionPoints++;
-        response.player = winner;
+        response.data.winners.push(winner);
         await set('player', guild, winner);
-        await updateSecretPlayerChannel(guild, winner);
+        // queueService.addLowPriority(async () => await updateSecretPlayerChannel(guild, winner))
     }
 
     await logAction(guild.client, response);
+
+
 
     await truncate('jury-vote', guild);
     // await createJuryVote(guild);
 
     return response;
+}
+
+async function closeJury(guild: Guild): Promise<void> {
+    let settings = await getById('settings', guild) as Settings;
+    settings.juryOpen = false;
+    await set('settings', guild, settings);
 }
 
 function countVotes(votes: Map<string, JuryVote>): Map<string, number> {
@@ -197,7 +205,7 @@ async function addPlayerToJury(guild: Guild, player: Player): Promise<void> {
         message = 'Three members of the jury have been assembled. You must all vote for the same player for them to recieve the bonus AP. You will be notified when a vote has started.';
     }
     if (juryMemebers.size > 3) {
-        message = `${juryMemebers.size} members of the jury have been assembled. The player with the most votes AND at least 3 votes will recieve the bonus AP. You will be notified when a vote has started.`;
+        message = `${juryMemebers.size} members of the jury have been assembled. Any player with at least 3 votes will recieve one bonus AP. You will be notified when a vote has started.`;
     }
     await juryChannel.send(message);
 }
@@ -213,4 +221,4 @@ async function getVoteCount(guild: Guild): Promise<number> {
     return count;
 }
 
-export { handleVoteButton, finalizeJuryVote, addPlayerToJury, createJuryVote, juryVote, removeVote, getVoteCount }
+export { handleVoteButton, finalizeJuryVote, addPlayerToJury, createJuryVote, juryVote, removeVote, getVoteCount, closeJury }

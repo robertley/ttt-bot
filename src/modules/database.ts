@@ -46,6 +46,7 @@ async function initFiles(guild: Guild) {
             id: '1',
             apScheduleCron: '0 12 * * *',
             juryOpenScheduleCron: '0 14 * * *',
+            juryOpen: false
         }
         await set('settings', guild, settings);
         await updateSettingsChannel(guild);
