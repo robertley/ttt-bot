@@ -32,7 +32,7 @@ console.log("Token length:", process.env.TOKEN?.length);
 
 
 // and deploy your commands!
-await (async () => {
+(async () => {
 	try {
 		console.log(`Started refreshing ${commands.length} application (/) commands.`);
 
@@ -47,4 +47,4 @@ await (async () => {
 		// And of course, make sure you catch and log any errors!
 		console.error(error);
 	}
-})();
+})().then(() => {}).catch((error) => {});
