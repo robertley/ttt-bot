@@ -316,7 +316,7 @@ async function createSecretGroupChannel(guild: Guild, user: User, name: string):
 
 async function addUserToSecretChannel(interaction: CommandInteraction, user: User): Promise<void> {
     let channel = interaction.channel as TextChannel;
-    if (channel.parent.id != process.env.SECRET_CATEGORY_ID) {
+    if (channel.parent.id != process.env.SECRET_CATEGORY_ID && channel.parent.id != process.env.SECRET_CATEGORY_ID_2) {
         await interaction.editReply({ content: 'This is not a secret channel' });
         return;
     }
@@ -336,7 +336,7 @@ async function addUserToSecretChannel(interaction: CommandInteraction, user: Use
 
 async function removeUserFromSecretChannel(interaction: CommandInteraction, user: User): Promise<void> {
     let channel = interaction.channel as TextChannel;
-    if (channel.parent.id != process.env.SECRET_CATEGORY_ID) {
+    if (channel.parent.id != process.env.SECRET_CATEGORY_ID && channel.parent.id != process.env.SECRET_CATEGORY_ID_2) {
         await interaction.editReply({ content: 'This is not a secret channel' });
         return;
     }
@@ -371,6 +371,7 @@ async function updateSecretPlayerChannel(guild: Guild, player: Player): Promise<
     }
     if (messageArray.length == 0) {
         await channel.send({ embeds: [playerEmbed], files: files, content: killsMessage });
+        await addPlayerControlButtons(guild, player);
         return channel;
     }
     let targetMessage = messageArray[messageArray.length - 1];
@@ -437,7 +438,7 @@ async function sendPlayerNotification(guild: Guild, player: Player, message: str
 
 async function killPlayerEvents(guild: Guild, player: Player, target: Player): Promise<void> {
 
-    target.diedDate = new Date();
+    target.diedDate = Date.now();
 
     await death(target, guild.client);
 
@@ -447,6 +448,7 @@ async function killPlayerEvents(guild: Guild, player: Player, target: Player): P
     player.kills.push(target.emoji);
     
     await set('player', guild, player);
+    await set ('player', guild, target);
 
     let targetUser = guild.members.cache.get(target.id).user;
 
@@ -469,6 +471,8 @@ async function killPlayerEvents(guild: Guild, player: Player, target: Player): P
     await sendPlayerNotification(guild, target, `You have been killed by ${player.emoji} <@${player.id}>`);
 
     await updateSecretPlayerChannel(guild, player);
+
+    queueService.addLowPriority(() => updateAllSecretPlayerChannels(guild), 'secret-player-channel-update');
 }
 
 async function updateSetting(guild: Guild, key: string, value: string): Promise<void> {

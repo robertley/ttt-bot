@@ -164,7 +164,7 @@ async function finalizeJuryVote(guild: Guild): Promise<ActionResponse> {
 
 
 
-    await truncate('jury-vote', guild);
+    // await truncate('jury-vote', guild);
     // await createJuryVote(guild);
 
     return response;
@@ -172,6 +172,7 @@ async function finalizeJuryVote(guild: Guild): Promise<ActionResponse> {
 
 async function closeJury(guild: Guild): Promise<void> {
     let settings = await getById('settings', guild) as Settings;
+    // await truncate('jury-vote', guild);
     settings.juryOpen = false;
     await set('settings', guild, settings);
 }

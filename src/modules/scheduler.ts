@@ -2,7 +2,7 @@ import { Guild, TextChannel } from 'discord.js';
 import { scheduleJob } from 'node-schedule';
 import { givePlayersActionPoints } from './game';
 import { updateAllSecretPlayerChannels } from './bot';
-import { getAll, getById, set } from './database';
+import { getAll, getById, set, truncate } from './database';
 import { Settings } from '../interfaces/settings.interface';
 import { Player } from '../interfaces/player.interface';
 import { closeJury, finalizeJuryVote } from './jury';
@@ -66,6 +66,7 @@ async function distributeApJob(guild: Guild) {
 async function juryOpenJob(guild: Guild) {
     let players = await getAll('player', guild) as Map<string, Player>;
     let deadPlayers = Array.from(players.values()).filter(p => p.health <= 0);
+    await truncate('jury-vote', guild);
 
     if (deadPlayers.length < 3) {
         return;

@@ -49,6 +49,6 @@ module.exports = {
         }
 
         await juryVote(interaction.guild, interaction.user, candidate.user);
-        await interaction.editReply({ content: 'Vote casted' });
+        await interaction.editReply({ content: 'Vote cast' });
     }
 }

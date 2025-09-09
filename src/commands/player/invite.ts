@@ -13,7 +13,7 @@ module.exports = {
         
         let hasRole = false;
         invitee?.roles.cache.forEach(role => {
-            if (role.id == process.env.PLAYER_ROLE_ID || role.name == process.env.JURY_ROLE_ID) {
+            if (role.id == process.env.PLAYER_ROLE_ID || role.id == process.env.JURY_ROLE_ID) {
                 hasRole = true;
                 return;
             }
@@ -27,6 +27,7 @@ module.exports = {
         try {
             let resp = await addUserToSecretChannel(interaction, interaction.options.get('player').user);
         } catch (e) {
+            console.error(e);
             await interaction.editReply({ content: "This is not a secret group channel" });
             return;
         }

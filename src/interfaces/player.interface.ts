@@ -7,7 +7,7 @@ export interface Player extends DBObject {
     range: number;
     emoji: string;
     secretChannelId: string;
-    diedDate: Date;
+    diedDate: number;
     kills: string[];
     brainOrBrawn: 'brain' | 'brawn';
 }
