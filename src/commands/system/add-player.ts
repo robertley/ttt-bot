@@ -14,6 +14,7 @@ async function isValidImageUrl(url: string): Promise<boolean> {
     }
 }
 
+const EMOJI_REQUIRED = false;
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -23,7 +24,7 @@ module.exports = {
         .addStringOption(option =>
             option.setName('emoji')
                 .setDescription('Emoji for the player.')
-                .setRequired(true)),
+                .setRequired(EMOJI_REQUIRED)),
     async execute(interaction: CommandInteraction): Promise<void> {
         await interaction.deferReply();
 
@@ -32,7 +33,10 @@ module.exports = {
             await interaction.editReply(`Adding player ${user.displayName} to the game...`);
 
             // test emoji
-            const emoji = interaction.options.get('emoji').value;
+            let emoji = interaction.options.get('emoji')?.value;
+            if (!emoji) {
+                emoji = '😀';
+            }
             const emojiUnicode = getUnicode(emoji).replace(/\s/g, '-');
             
             // Updated URL to the current CDN for Twemoji
@@ -49,7 +53,7 @@ module.exports = {
                 return;
             }
 
-            await createNewPlayer(user, interaction.guild, interaction.options.get('emoji').value);
+            await createNewPlayer(user, interaction.guild, emoji);
             await interaction.editReply(`Player ${user.displayName} added to the game!`);
 
             setTimeout(async () => {

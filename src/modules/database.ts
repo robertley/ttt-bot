@@ -6,7 +6,7 @@ import { env } from "node:process";
 import { Settings } from "../interfaces/settings.interface";
 import { updateSettingsChannel } from "./bot";
 
-export type DBKey = 'board' | 'player' | 'game' | 'jury-vote' | 'player-name-record' | 'settings';
+export type DBKey = 'board' | 'player' | 'game' | 'jury-vote' | 'player-name-record' | 'settings' | 'secret-channel-category';
 
 async function initNewServer(guild: Guild) {
     const directory = `./data/${guild.id}`;
@@ -37,6 +37,7 @@ async function initFiles(guild: Guild) {
     await truncate('player', guild);
     await truncate('game', guild);
     await truncate('jury-vote', guild);
+    await truncate('secret-channel-category', guild);
     if (!existsSync(`./data/${guild.id}/player-name-record.json`)) {
         await truncate('player-name-record', guild);
     }

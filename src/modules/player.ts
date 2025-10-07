@@ -1,9 +1,9 @@
 import { ButtonInteraction, Client, Embed, Guild, TextChannel, User } from "discord.js";
 import { Player } from "../interfaces/player.interface";
 import { set, getById, getAll } from "./database";
-import { ActionResponse } from "../interfaces/action-response.interace";
+import { ActionResponse, AttackData } from "../interfaces/action-response.interace";
 import { Board } from "../interfaces/board.interface";
-import { createSecretPlayerChannel, doActionEvents, killPlayerEvents, updateAllSecretPlayerChannels } from "./bot";
+import { createSecretPlayerChannel, doActionEvents, killPlayerEvents, messageInteractionReply, updateAllSecretPlayerChannels } from "./bot";
 import { tileIsInRange } from "./board";
 import { addPlayerToJury } from "./jury";
 import { getDeleteMeButton } from "./functions";
@@ -60,9 +60,9 @@ async function handleAPButton(interaction: ButtonInteraction) {
     let action = interaction.customId.split('-')[1];
     let actionSecondary = interaction.customId.split('-')[2];
     // console.log(interaction.user);
-    let resp;
     let message;
     let targetUser;
+    let actionPromise: Promise<ActionResponse>;
     switch (action) {
         case 'movePanel':
             await openMovePanel(interaction);
@@ -80,21 +80,21 @@ async function handleAPButton(interaction: ButtonInteraction) {
             await confirmPanel(interaction, 'heal');
             return;
         case 'move':
-            resp = await move(interaction.user, actionSecondary as 'up' | 'down' | 'left' | 'right', interaction.guild);
+            actionPromise = move(interaction.user, actionSecondary as 'up' | 'down' | 'left' | 'right', interaction.guild);
             break;
         case 'attack':
             targetUser = interaction.guild.members.cache.get(actionSecondary).user;
-            resp = await attack(interaction.user, targetUser, interaction.guild);
+            actionPromise = attack(interaction.user, targetUser, interaction.guild);
             break;
         case 'sendAp':
             targetUser = interaction.guild.members.cache.get(actionSecondary).user;
-            resp = await giveAP(interaction.user, targetUser, interaction.guild);
+            actionPromise = giveAP(interaction.user, targetUser, interaction.guild);
             break;
         case 'upgradeRange':
-            resp = await upgradeRange(interaction.user, interaction.guild);
+            actionPromise = upgradeRange(interaction.user, interaction.guild);
             break;
         case 'heal':
-            resp = await addHeart(interaction.user, interaction.guild);
+            actionPromise = addHeart(interaction.user, interaction.guild);
             break;
         // case 'range':
         //     rangeButton(interaction, actionSecondary);
@@ -108,48 +108,67 @@ async function handleAPButton(interaction: ButtonInteraction) {
             return;
     }
 
-    if (!resp.success) {
-        message = `Could not ${action}: ${resp.error} - ${resp.message}`;
-        await interaction.editReply({ content: message });
-        return;
-    }
+    let queueResponse = queueService.addHighPriority(async () => {
+        // console.log('Processing action for', interaction.user.id);
+        let actionResponse = await actionPromise;
+        // console.log('Action processed for', interaction.user.id, actionResponse);
 
-    switch (action) {
-        case 'move':
-            message = `Moved ${actionSecondary}!`;
-            break;
-        case 'attack':
-            message = `Attacked ${resp.data.target.displayName}!`;
-            break;
-        case 'sendAp':
-            message = `Sent an AP to ${resp.data.target.displayName}!`;
-            break;
-        case 'upgradeRange':
-            message = `Range upgraded!`;
-            break;
-        case 'heal':
-            message = `Added a heart!`;
-            break;
-    }
+        if (!actionResponse.success) {
+            message = `Could not ${action}: ${actionResponse.error} - ${actionResponse.message}`;
+            console.log(message);
+            return message;
+        }
 
-    message +=  ` AP remaining: ${resp.player.actionPoints}`;
+        await interaction.editReply({
+            content: 'Submitting action...'
+        });
 
-    queueService.addHighPriority(() =>
-        doActionEvents({
+        switch (action) {
+            case 'move':
+                message = `Moved ${actionSecondary}!`;
+                break;
+            case 'attack':
+                message = `Attacked ${(actionResponse.data as AttackData).target.displayName}!`;
+                break;
+            case 'sendAp':
+                message = `Sent an AP to ${(actionResponse.data as AttackData).target.displayName}!`;
+                break;
+            case 'upgradeRange':
+                message = `Range upgraded!`;
+                break;
+            case 'heal':
+                message = `Added a heart!`;
+                break;
+        }
+
+        message +=  ` AP remaining: ${actionResponse.player.actionPoints}`;
+
+        await doActionEvents({
             guild: interaction.guild, 
             user: interaction.user, 
             target: targetUser,
-            actionResponse: resp
-        })
-    );
+            actionResponse: actionResponse
+        }), interaction.user.id
 
-    if (action == 'move') {
-        queueService.addLowPriority(() =>
-            updateAllSecretPlayerChannels(interaction.guild),
-        'secret-player-channel-update');
+        return message;
+    }, interaction.user.id);
+
+    // console.log('resp:',queueResponse)
+
+    if (!queueResponse.success) {
+        message = `Could not ${action}: on cooldown - try again in ${Math.ceil((queueResponse.cooldownMs || 0) / 10) / 100} seconds`;
+        await messageInteractionReply(interaction, null, message);
+        return;
     }
 
-    await interaction.editReply({ content: message });
+    // if (action == 'move') {
+    //     queueService.addLowPriority(() =>
+    //         updateAllSecretPlayerChannels(interaction.guild), null,
+    //     'secret-player-channel-update');
+    // }
+
+    await messageInteractionReply(interaction, queueResponse.finishedSubject);
+    // await interaction.editReply({content: 'foo'});
 }
 
 async function openAttackSendAPPanel(interaction: ButtonInteraction, type: 'attack' | 'sendAp') {

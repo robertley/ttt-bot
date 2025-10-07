@@ -1,3 +1,6 @@
+// dotenv config
+import 'dotenv/config';
+
 import {
     Client,
     Collection,
@@ -15,6 +18,7 @@ import { givePlayersActionPoints } from './modules/game';
 import { updateAllSecretPlayerChannels } from './modules/bot';
 import { initScheduledJobs } from './modules/scheduler';
 import { queueService } from './modules/queue-service';
+import { resetServer } from './modules/admin';
 const TOKEN = process.env.TOKEN;
 
 // TODO
@@ -130,6 +134,11 @@ async function buttonHandler(interaction) {
     switch (idPrefix) {
         case 'ap':
             await handleAPButton(interaction);
+            break;
+        case 'confirm':
+            if (interaction.customId === 'confirm-reset-server') {
+                await resetServer(interaction);
+            }
             break;
         
     }

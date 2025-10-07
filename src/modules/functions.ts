@@ -7,4 +7,13 @@ function getDeleteMeButton() {
   }
 }
 
-export { getDeleteMeButton };
+function getConfirmButton(id: 'reset-server') {
+  return {
+    type: 2,
+    style: 3,
+    label: 'Confirm',
+    custom_id: `confirm-${id}`,
+  }
+}
+
+export { getDeleteMeButton, getConfirmButton };

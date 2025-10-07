@@ -1,4 +1,4 @@
-import { APIEmbed, ButtonComponent, CategoryChannel, ChannelType, Client, CommandInteraction, Embed, Guild, GuildChannel, MessageCreateOptions, MessageEditOptions, PermissionFlagsBits, TextChannel, User } from "discord.js";
+import { APIEmbed, ButtonComponent, ButtonInteraction, CategoryChannel, ChannelType, Client, CommandInteraction, Embed, Guild, GuildChannel, Interaction, MessageComponentInteraction, MessageCreateOptions, MessageEditOptions, PermissionFlagsBits, TextChannel, User } from "discord.js";
 import { drawBoard, drawBoardCanvas, drawPlayerBoard } from "./board";
 import { getAll, getById, set } from "./database";
 import { Player } from "../interfaces/player.interface";
@@ -8,6 +8,8 @@ import { send } from "process";
 import { getDeleteMeButton } from "./functions";
 import { ScheduledJob, scheduleServerJob } from "./scheduler";
 import { queueService } from "./queue-service";
+import { SecretChannelCategory } from "../interfaces/secret-channel-category.interface";
+import { defer, Observable, Observer, Subject, Subscription } from "rxjs";
 
 async function doActionEvents(opts: {
     guild: Guild,
@@ -19,8 +21,8 @@ async function doActionEvents(opts: {
     let { guild, user, target, actionResponse } = opts;
 
     let player = await getById('player', guild, user.id) as Player;
-    queueService.addToQueue(() => 
-        updateBoardChannel(guild), 5,
+    queueService.addLowPriority(() => 
+        updateBoardChannel(guild), null,
     'update-board-channel');
     await updateSecretPlayerChannel(guild, player);
     
@@ -49,7 +51,11 @@ async function doActionEvents(opts: {
         
 }
 
-async function updateBoardChannel(guild: Guild): Promise<Buffer> {
+async function updateBoardChannel(guild: Guild): Promise<void> {
+    console.log('waiting....')
+    // wait 10 seconds
+    await new Promise(resolve => setTimeout(resolve, 10000));
+    console.log('done waiting')
     let client = guild.client;
     let game = await getById('game', guild, '1');
     // let boardEmbed: Partial<Embed>;
@@ -187,7 +193,7 @@ async function updateBoardChannel(guild: Guild): Promise<Buffer> {
         await messageArray[0].edit({ files: files, embeds: embeds});
     });
 
-    return board;
+    // return board;
 }
 
 async function logAction(client: Client, action: ActionResponse): Promise<void> {
@@ -285,15 +291,37 @@ async function createSecretPlayerChannel(guild: Guild, player: Player): Promise<
 
     setTimeout(async () => {
         await updateSecretPlayerChannel(guild, player);
-
-        await addPlayerControlButtons(guild, player);
     });
 
     return channel.id;
 }
 
+const MAX_CHANNELS_PER_CATEGORY = 50;
+
 async function createSecretGroupChannel(guild: Guild, user: User, name: string): Promise<void> {
-    let secretCategory = guild.channels.cache.get(process.env.SECRET_CATEGORY_ID) as CategoryChannel;
+    // let secretCategory = guild.channels.cache.get(process.env.SECRET_CATEGORY_ID) as CategoryChannel;
+    let secretChannelGroups = await getAll('secret-channel-category', guild) as Map<string, SecretChannelCategory>;
+    if (secretChannelGroups.size == 0) {
+        let newCategory = await newSecretChannelCategory(guild);
+        let newGroup: SecretChannelCategory = {
+            id: newCategory.id,
+            full: false,
+        }
+        secretChannelGroups.set(newGroup.id, newGroup);
+        await set('secret-channel-category', guild, newGroup);
+    }
+    let secretCategoryGroup = Array.from(secretChannelGroups.values()).find(c => c.full == false);
+    if (secretCategoryGroup == null) {
+        let newCategory = await newSecretChannelCategory(guild);
+        let newGroup: SecretChannelCategory = {
+            id: newCategory.id,
+            full: false,
+        }
+        secretChannelGroups.set(newGroup.id, newGroup);
+        secretCategoryGroup = newGroup;
+        await set('secret-channel-category', guild, newGroup);
+    }
+
     let channel = await guild.channels.create({
         name: name,
         type: ChannelType.GuildText,
@@ -307,11 +335,24 @@ async function createSecretGroupChannel(guild: Guild, user: User, name: string):
                 allow: [PermissionFlagsBits.ViewChannel],
             },
         ],
-        parent: secretCategory,
+        parent: secretCategoryGroup.id,
     })
 
+    let size = await channel.parent.children.cache.filter(c => c.type == ChannelType.GuildText).size;
+    if (size >= MAX_CHANNELS_PER_CATEGORY) {
+        secretCategoryGroup.full = true;
+        await set('secret-channel-category', guild, secretCategoryGroup);
+    }
 
     return;
+}
+
+async function newSecretChannelCategory(guild: Guild): Promise<CategoryChannel> {
+    let category: CategoryChannel = await guild.channels.create({
+        name: 'Secret Channels',
+        type: ChannelType.GuildCategory
+    });
+    return category;
 }
 
 async function addUserToSecretChannel(interaction: CommandInteraction, user: User): Promise<void> {
@@ -423,6 +464,8 @@ async function addPlayerControlButtons(guild: Guild, player: Player): Promise<vo
 
 
 async function updateAllSecretPlayerChannels(guild: Guild): Promise<void> {
+    // wait 10 seconds
+    await new Promise(resolve => setTimeout(resolve, 10000));
     let players = await getAll('player', guild) as Map<string, Player>;
     for (let player of players.values()) {
         await updateSecretPlayerChannel(guild, player);
@@ -507,6 +550,31 @@ async function updateSettingsChannel(guild: Guild): Promise<void> {
     await targetMessage.edit(settingsMessage);
 }
 
+async function messageInteractionReply(interaction: MessageComponentInteraction, deferSub: Subject<string | void>, message?: string): Promise<void> {
+    // console.log(deferSub);
+    if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferReply();
+    }
+    if (deferSub) {
+        deferSub.subscribe({
+            next: async (resp) => {
+                if (message) {
+                    await interaction.editReply({ content: message });
+                }
+                if (typeof resp !== "string") {
+                    return;
+                }
+                await interaction.editReply({ content: resp });
+            },
+            complete: async () => {
+                console.log('Interaction complete');
+            }
+        })
+    } else {
+        await interaction.editReply({ content: message ?? '< No response >' });
+    }
+}
+
 export {
     updateBoardChannel,
     logAction,
@@ -519,5 +587,6 @@ export {
     removeUserFromSecretChannel,
     killPlayerEvents,
     updateSettingsChannel,
-    updateSetting
+    updateSetting,
+    messageInteractionReply
 };
