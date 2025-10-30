@@ -97,7 +97,7 @@ async function handleVoteButton(interaction: ButtonInteraction): Promise<void> {
 
     // console.log(voteCount);
 
-    let buttons = interaction.message.components[0].components as ButtonComponent[];
+    let buttons = (interaction.message.components[0] as any).components as ButtonComponent[];
     let newButtons = buttons.map((button) => {
         if (button.customId == 'remove-vote') {
             return {

@@ -1,4 +1,4 @@
-import { CommandInteraction, SlashCommandBuilder } from "discord.js";
+import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { initNewServer } from "../../modules/database";
 import { givePlayersActionPoints } from "../../modules/game";
 import { updateAllSecretPlayerChannels } from "../../modules/bot";
@@ -6,13 +6,16 @@ import { updateAllSecretPlayerChannels } from "../../modules/bot";
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('global-give-ap')
-        .setDescription('give players AP'),
-    async execute(interaction: CommandInteraction): Promise<void> {
+        .setDescription('give players AP')
+        .addNumberOption(option => option.setName('amount').setDescription('amount of AP to give').setRequired(false)),
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.deferReply();
-        await givePlayersActionPoints(interaction.guild);
+        let amount = interaction.options.get('amount')?.value as number;
+        if (isNaN(amount) || amount == null) {
+            amount = 1;
+        }
+        await givePlayersActionPoints(interaction.guild, amount);
         await interaction.editReply('AP given');
-        setTimeout(async () => {
-            await updateAllSecretPlayerChannels(interaction.guild);
-        });
+        updateAllSecretPlayerChannels(interaction.guild).subscribe(() => {});
     },
 }

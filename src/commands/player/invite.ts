@@ -1,4 +1,4 @@
-import { CommandInteraction, SlashCommandBuilder, User } from "discord.js";
+import { ChatInputCommandInteraction, SlashCommandBuilder, User } from "discord.js";
 import { addUserToSecretChannel } from "../../modules/bot";
 
 
@@ -7,7 +7,7 @@ module.exports = {
         .setName('sc-add-player')
         .setDescription('add a player into a secret channel')
         .addUserOption(option => option.setName('player').setDescription('invitee').setRequired(true)),
-    async execute(interaction: CommandInteraction): Promise<void> {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.deferReply({ ephemeral: true });
         let invitee = interaction.guild?.members.cache.get(interaction.options.get('player')?.user.id || '');
         

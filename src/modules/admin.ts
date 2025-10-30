@@ -8,9 +8,25 @@ async function resetServer(interaction: ButtonInteraction) {
     let players: Map<string, Player> = await getAll('player', interaction.guild) as Map<string, Player>;
     for (let [id, player] of players) {
         if (player.secretChannelId) {
-            let channel = await interaction.guild.channels.fetch(player.secretChannelId);
-            if (channel) {
-                await channel.delete();
+            try {
+                let channel = await interaction.guild.channels.fetch(player.secretChannelId);
+                if (channel) {
+                    await channel.delete();
+                }
+            } catch (e) {
+                // channel already deleted
+            }
+
+        }
+
+        if (player.notifcationChannelId) {
+            try {
+                let channel = await interaction.guild.channels.fetch(player.notifcationChannelId);
+                if (channel) {
+                    await channel.delete();
+                }
+            } catch (e) {
+                // channel already deleted
             }
         }
     }
@@ -26,6 +42,9 @@ async function resetServer(interaction: ButtonInteraction) {
             await categoryChannel.delete();
         }
     }
+
+    // delete all database entries and re-initialize the server
+    await initNewServer(interaction.guild);
 
 
     await interaction.editReply('Done');

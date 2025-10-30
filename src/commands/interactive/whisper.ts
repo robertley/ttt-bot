@@ -1,4 +1,4 @@
-import { CommandInteraction, SlashCommandBuilder, TextChannel } from "discord.js";
+import { ChatInputCommandInteraction, SlashCommandBuilder, TextChannel } from "discord.js";
 import { getById } from "../../modules/database";
 import { Player } from "../../interfaces/player.interface";
 import { getDeleteMeButton } from "../../modules/functions";
@@ -9,7 +9,7 @@ module.exports = {
         .setDescription('whisper something anonymously to another player')
         .addUserOption(option => option.setName('player').setDescription('player you are whispering to').setRequired(true))
         .addStringOption(option => option.setName('message').setDescription('message you are whispering').setRequired(true)),
-    async execute(interaction: CommandInteraction): Promise<void> {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.deferReply({ ephemeral: true });
         let player = await getById('player', interaction.guild, interaction.user.id) as Player;
         let target = interaction.options.get('player').user;
@@ -20,7 +20,7 @@ module.exports = {
         // }
 
         let targetPlayer = await getById('player', interaction.guild, target.id) as Player;
-        let targetPlayerChannel = interaction.guild.channels.cache.get(targetPlayer.secretChannelId) as TextChannel;
+        let targetPlayerChannel = interaction.guild.channels.cache.get(targetPlayer.notifcationChannelId) as TextChannel;
         if (!targetPlayerChannel) {
             await interaction.editReply({
                 content: `Could not find a channel for ${target.displayName}`,

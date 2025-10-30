@@ -1,4 +1,4 @@
-import { CommandInteraction, SlashCommandBuilder } from "discord.js";
+import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { updateSetting } from "../../modules/bot";
 
 module.exports = {
@@ -10,7 +10,7 @@ module.exports = {
             { name: 'juryOpenScheduleCron', value: 'juryOpenScheduleCron' },
         ]))
         .addStringOption(option => option.setName('value').setDescription('Value to set').setRequired(true)),
-    async execute(interaction: CommandInteraction): Promise<void> {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.deferReply();
         await updateSetting(interaction.guild, interaction.options.get('key').value as string, interaction.options.get('value').value as string);
         await interaction.editReply('Setting updated');

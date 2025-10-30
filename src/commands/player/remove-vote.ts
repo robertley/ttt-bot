@@ -1,4 +1,4 @@
-import { CommandInteraction, GuildMember, SlashCommandBuilder, User } from "discord.js";
+import { ChatInputCommandInteraction, GuildMember, SlashCommandBuilder, User } from "discord.js";
 import { juryVote, removeVote } from "../../modules/jury";
 
 
@@ -7,7 +7,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('ju-remove-vote')
         .setDescription('remove your Jury vote'),
-    async execute(interaction: CommandInteraction): Promise<void> {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.deferReply({ ephemeral: true });
         let hasRole = false;
         (interaction.member as GuildMember).roles.cache.forEach(role => {

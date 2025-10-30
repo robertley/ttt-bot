@@ -1,4 +1,4 @@
-import { CommandInteraction, SlashCommandBuilder } from "discord.js";
+import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { createNewPlayer } from "../../modules/player";
 import { updateBoardChannel } from "../../modules/bot";
 import { set } from "../../modules/database";
@@ -14,7 +14,7 @@ module.exports = {
             option.setName('name')
                 .setDescription('name of player')
                 .setRequired(true)),
-    async execute(interaction: CommandInteraction): Promise<void> {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.deferReply();
 
         let user = interaction.options.get('player').user;

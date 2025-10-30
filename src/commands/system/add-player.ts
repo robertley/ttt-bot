@@ -1,4 +1,4 @@
-import { CommandInteraction, SlashCommandBuilder } from "discord.js";
+import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { createNewPlayer } from "../../modules/player";
 import { updateBoardChannel } from "../../modules/bot";
 
@@ -25,7 +25,7 @@ module.exports = {
             option.setName('emoji')
                 .setDescription('Emoji for the player.')
                 .setRequired(EMOJI_REQUIRED)),
-    async execute(interaction: CommandInteraction): Promise<void> {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.deferReply();
 
         let user = interaction.options.get('player').user;
@@ -56,9 +56,9 @@ module.exports = {
             await createNewPlayer(user, interaction.guild, emoji);
             await interaction.editReply(`Player ${user.displayName} added to the game!`);
 
-            setTimeout(async () => {
-                await updateBoardChannel(interaction.guild);
-            });
+            // setTimeout(async () => {
+            //     await updateBoardChannel(interaction.guild);
+            // });
         } catch (err) {
             console.error(err);
             await interaction.editReply('There was an error adding the player to the game.');

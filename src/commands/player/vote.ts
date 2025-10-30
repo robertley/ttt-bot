@@ -1,4 +1,4 @@
-import { CommandInteraction, GuildMember, SlashCommandBuilder, User } from "discord.js";
+import { ChatInputCommandInteraction, GuildMember, SlashCommandBuilder, User } from "discord.js";
 import { juryVote } from "../../modules/jury";
 import { getById } from "../../modules/database";
 import { Settings } from "../../interfaces/settings.interface";
@@ -10,7 +10,7 @@ module.exports = {
         .setName('ju-vote')
         .setDescription('vote for a player to get an extra AP')
         .addUserOption(option => option.setName('player').setDescription('candidate').setRequired(true)),
-    async execute(interaction: CommandInteraction): Promise<void> {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.deferReply({ ephemeral: true });
 
         let candidate = interaction.guild?.members.cache.get(interaction.options.get('player')?.user.id || '');

@@ -86,16 +86,18 @@ function createPlayerPositions(playerIds: string[]): { x: number, y: number }[] 
     return playerPositions;
 }
 
-export async function givePlayersActionPoints(guild: Guild): Promise<void> {
+export async function givePlayersActionPoints(guild: Guild, amt = 1): Promise<void> {
     let players = await getAll('player', guild) as Map<string, Player>;
     for (let player of players.values()) {
-        if (player.health > 0)
-            player.actionPoints++;
+        if (player.health > 0) {
+            player.actionPoints += amt;
+            player.sentLongRangeAp = false;
+        }
     }
     await set('player', guild, Array.from(players.values()));
 
-    await logAction(guild.client, {
+    logAction(guild.client, {
         success: true,
         action: 'scheduled-ap',
-    })
+    }).subscribe(() => {});
 }

@@ -1,4 +1,4 @@
-import { CommandInteraction, SlashCommandBuilder } from "discord.js";
+import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { getById, initNewServer } from "../../modules/database";
 import { drawBoardCanvas, drawPlayerBoard } from "../../modules/board";
 import { Player } from "../../interfaces/player.interface";
@@ -10,12 +10,12 @@ module.exports = {
         .setName('i-see-player-board')
         .setDescription('see the board for a player')
         .addUserOption(option => option.setName('player').setDescription('The player to see the board for').setRequired(true)),
-    async execute(interaction: CommandInteraction): Promise<void> {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.deferReply();
 
         let commandUser = await getById('player', interaction.guild, interaction.user.id) as Player;
         let buttons = [];
-        if (commandUser.secretChannelId == interaction.channelId) {
+        if (commandUser.secretChannelId == interaction.channelId || commandUser.notifcationChannelId == interaction.channelId) {
             buttons.push(getDeleteMeButton());
         }
 
@@ -28,10 +28,10 @@ module.exports = {
         }
         let board = await drawBoardCanvas(interaction.guild, {
             player: player
-        });
+        }).toPromise();
 
 
 
-        await interaction.editReply({ files: [board], components: buttons.length > 0 ? [{type: 1, components: buttons}] : null });
+        // await interaction.editReply({ files: [board], components: buttons.length > 0 ? [{type: 1, components: buttons}] : null });
     },
 }

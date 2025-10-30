@@ -1,4 +1,4 @@
-import { CommandInteraction, SlashCommandBuilder } from "discord.js";
+import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { removeUserFromSecretChannel } from "../../modules/bot";
 
 
@@ -7,7 +7,7 @@ module.exports = {
         .setName('sc-remove-player')
         .setDescription('remove a player from a secret channel')
         .addUserOption(option => option.setName('player').setDescription('removee').setRequired(true)),
-    async execute(interaction: CommandInteraction): Promise<void> {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.deferReply({ ephemeral: true });
         try {
             let resp = await removeUserFromSecretChannel(interaction, interaction.options.get('player').user);

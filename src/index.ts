@@ -2,6 +2,7 @@
 import 'dotenv/config';
 
 import {
+    ButtonInteraction,
     Client,
     Collection,
     Events,
@@ -13,12 +14,14 @@ import * as fs from 'fs';
 import { initNewServer } from './modules/database';
 import { handleVoteButton } from './modules/jury';
 import { scheduleJob } from 'node-schedule';
-import { giveAP, handleAPButton } from './modules/player';
 import { givePlayersActionPoints } from './modules/game';
-import { updateAllSecretPlayerChannels } from './modules/bot';
+import { updateAllSecretPlayerChannels } from './modules/bot'
 import { initScheduledJobs } from './modules/scheduler';
 import { queueService } from './modules/queue-service';
 import { resetServer } from './modules/admin';
+import { Observable } from 'rxjs';
+import { BotTaskService, Task } from './modules/bot-task-service';
+import { BotInteraction, BotInteractionService } from './modules/bot-interaction.service';
 const TOKEN = process.env.TOKEN;
 
 // TODO
@@ -123,19 +126,20 @@ client.on(Events.InteractionCreate, async interaction => {
 	}
 });
 
-async function buttonHandler(interaction) {
+async function buttonHandler(interaction: ButtonInteraction) {
     if (interaction.customId === 'delete-me') {
         await interaction.message.delete();
         return;
     }
-    await interaction.deferReply({ ephemeral: true });
+
     let idPrefix = interaction.customId.split('-')[0];
     // console.log('button handler', interaction.customId);
     switch (idPrefix) {
         case 'ap':
-            await handleAPButton(interaction);
+            BotInteractionService.handleAPButton(interaction);      
             break;
         case 'confirm':
+            interaction.deferReply({ ephemeral: true });
             if (interaction.customId === 'confirm-reset-server') {
                 await resetServer(interaction);
             }
@@ -212,3 +216,46 @@ client.login(TOKEN).then(async () => {
 //         });
 //     }
 // });
+
+// function lowPriorityTask(): Observable<string> {
+//     return new Observable<string>((observer) => {
+//         setTimeout(() => {
+//             observer.next('foo');
+//             observer.complete();
+//         }, 5000);
+//     });
+// }
+
+// function highPriorityTask(): Observable<void> {
+//     return new Observable<void>((observer) => {
+//         setTimeout(() => {
+//             observer.next();
+//             observer.complete();
+//         }, 2000);
+//     });
+// }
+
+// let lowPri: Task<string> = {
+//     fn: lowPriorityTask,
+//     priority: 'low',
+//     date: new Date(),
+//     name: 'Low Priority Task'
+// }
+
+// let highPri: Task<void> = {
+//     fn: highPriorityTask,
+//     priority: 'high',
+//     date: new Date(),
+//     name: 'High Priority Task',
+//     dataBaseFn: async () => {
+//         await new Promise((res) => setTimeout(() => res(null), 1000));
+//         console.log('High priority task database function executed');
+//     }
+// }
+
+// BotTaskService.addTask(lowPri).subscribe((result) => {
+//     console.log('Low priority guy subject result:', result);
+// });
+// setTimeout(() => {
+//     BotTaskService.addTask(highPri);
+// }, 1000);
