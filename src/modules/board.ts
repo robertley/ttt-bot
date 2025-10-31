@@ -26,7 +26,7 @@ function makeEmptyBoard(): Board {
 function drawBoard(guild: Guild): Observable<string> {
     return new Observable<string>(sub => {
 
-        getById('board', guild, '1').then(boardObj => {
+        getById<Board>('board', guild, '1').then(boardObj => {
             let board: Board = boardObj as Board;
             getAll('player', guild).then(playersObj => {
                 let players = playersObj as Map<string, Player>;
@@ -60,7 +60,7 @@ function drawBoard(guild: Guild): Observable<string> {
 
 function drawPlayerBoard(guild: Guild, player: Player): Observable<string> {
     return new Observable<string>(sub => {
-        getById('board', guild, '1').then(boardObj => {
+        getById<Board>('board', guild, '1').then(boardObj => {
             let board: Board = boardObj as Board;
             getAll('player', guild).then(playersObj => {
                 let players = playersObj as Map<string, Player>;
@@ -137,7 +137,7 @@ function drawBoardCanvas(guild: Guild, opts?: {
         let player = opts?.player;
         let actionResponse = opts?.actionResponse;
 
-        getById('board', guild, '1').then(boardObj => {
+        getById<Board>('board', guild, '1').then(boardObj => {
             let board = boardObj as Board;
             getAll('player', guild).then(playersObj => {
                 let players = playersObj as Map<string, Player>;
@@ -227,12 +227,6 @@ function drawBoardCanvas(guild: Guild, opts?: {
                         const tileValue = tiles[i][j];
                         if (tileValue != null) {
                             const player = players.get(tileValue);
-                            let emoji = player.emoji;
-                            if (player.health == 0) {
-                                emoji = '💀';
-                            }
-                            const emojiUnicode = getUnicode(emoji).replace(/\s/g, '-');
-                            const emojiImage = `https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/${emojiUnicode}.png`;
                             
                             // Create promise for loading this image
                             const loadPromise = new Promise((resolve, reject) => {
@@ -247,24 +241,33 @@ function drawBoardCanvas(guild: Guild, opts?: {
                                     ctx.fillStyle = 'red';
                                     ctx.fillRect(i * tileSize + padding, j * tileSize + padding, 
                                                 tileSize - padding * 2, tileSize - padding * 2);
-                                    console.error(`Failed to load emoji image: ${emojiImage}`);
+                                    console.error(`Failed to load emoji image: ${player.id}`);
                                     resolve(null);
                                 };
-                                emoji.src = emojiImage;
+                                if (player.health == 0) {
+                                    emoji.src = './data/emojis/skull.png';
+                                } else {
+                                    emoji.src = `./data/emojis/${player.id}.png`;
+                                }
                             });
                             
                             loadImagePromises.push(loadPromise);
 
-                            // Draw attack emoji
+                            // Draw hit emoji
                             if (targetPlayer && player.id == targetPlayer.id) {
                                 const loadPromise = new Promise((resolve, reject) => {
                                     const emoji = new Image();
-                                    emoji.src = 'https://twitter.github.io/twemoji/v/13.1.0/72x72/1f4a5.png';
                                     emoji.onload = () => {
                                         ctx.drawImage(emoji, i * tileSize + padding + (tileSize / 2), j * tileSize + padding + (tileSize / 2), 
                                             tileSize * .8 - padding * 2, tileSize * .8 - padding * 2);
                                         resolve(null);
                                     };
+                                    emoji.onerror = () => {
+                                        console.error(`Failed to load hit emoji image`);
+                                        resolve(null);
+                                    };
+                                    emoji.src = './data/emojis/hit.png';
+
                                 });
                                 loadImagePromises.push(loadPromise);
                             }
@@ -273,13 +276,18 @@ function drawBoardCanvas(guild: Guild, opts?: {
                             if (attackPlayer && player.id == attackPlayer.id) {
                                 const loadPromise = new Promise((resolve, reject) => {
                                     const emoji = new Image();
-                                    let emojiUnicode = getUnicode('⚔').replace(/\s/g, '-');
-                                    emoji.src = `https://twitter.github.io/twemoji/v/13.1.0/72x72/${emojiUnicode}.png`;
+
                                     emoji.onload = () => {
                                         ctx.drawImage(emoji, i * tileSize + padding + (tileSize / 2), j * tileSize + padding + (tileSize / 2), 
                                             tileSize * .8 - padding * 2, tileSize * .8 - padding * 2);
                                         resolve(null);
                                     };
+                                    emoji.onerror = () => {
+                                        console.error(`Failed to load attack emoji image`);
+                                        resolve(null);
+                                    };
+
+                                    emoji.src = './data/emojis/attack.png';
                                 });
                                 loadImagePromises.push(loadPromise);
                             }
@@ -289,31 +297,30 @@ function drawBoardCanvas(guild: Guild, opts?: {
                         if (move && oldY == j && oldX == i) {
                             const loadPromise = new Promise((resolve, reject) => {
                                 const emoji = new Image();
-                                let directionEmojiUnicode = '';
-                                switch (direction) {
-                                    case 'up':
-                                        directionEmojiUnicode = getUnicode('🔼').replace(/\s/g, '-');
-                                        emoji.src = `https://twitter.github.io/twemoji/v/13.1.0/72x72/${directionEmojiUnicode}.png`;
-                                        break;
-                                    case 'down':
-                                        directionEmojiUnicode = getUnicode('🔽').replace(/\s/g, '-');
-                                        emoji.src = `https://twitter.github.io/twemoji/v/13.1.0/72x72/${directionEmojiUnicode}.png`;
-                                        break;
-                                    case 'left':
-                                        directionEmojiUnicode = getUnicode('◀').replace(/\s/g, '-');
-                                        emoji.src = `https://twitter.github.io/twemoji/v/13.1.0/72x72/${directionEmojiUnicode}.png`;
-                                        break;
-                                    case 'right':
-                                        directionEmojiUnicode = getUnicode('▶').replace(/\s/g, '-');
-                                        emoji.src = `https://twitter.github.io/twemoji/v/13.1.0/72x72/${directionEmojiUnicode}.png`;
-                                        break;
-                                }
+         
                                 emoji.onload = () => {
                                     ctx.drawImage(emoji, i * tileSize + padding, j * tileSize + padding, 
                                         tileSize - padding * 2, tileSize - padding * 2);
                                     resolve(null);
                                 };
-
+                                emoji.onerror = () => {
+                                    console.error(`Failed to load move emoji image for direction: ${direction}`);
+                                    resolve(null);
+                                };
+                                switch (direction) {
+                                    case 'up':
+                                        emoji.src = `./data/emojis/up.png`;
+                                        break;
+                                    case 'down':
+                                        emoji.src = `./data/emojis/down.png`;
+                                        break;
+                                    case 'left':
+                                        emoji.src = `./data/emojis/left.png`;
+                                        break;
+                                    case 'right':
+                                        emoji.src = `./data/emojis/right.png`;
+                                        break;
+                                }
                                 
                             });
                             loadImagePromises.push(loadPromise);
@@ -321,7 +328,6 @@ function drawBoardCanvas(guild: Guild, opts?: {
                     }
                 }
 
-                
                 // Wait for all images to load
                 Promise.all(loadImagePromises).then(() => {
                     sub.next(canvas.toBuffer());
@@ -337,4 +343,4 @@ function drawBoardCanvas(guild: Guild, opts?: {
     // return canvas.toBuffer();
 }
 
-export { makeEmptyBoard, drawBoard, drawPlayerBoard, tileIsInRange, drawBoardCanvas };
+export const BoardModule = { makeEmptyBoard, drawBoard, drawPlayerBoard, tileIsInRange, drawBoardCanvas };

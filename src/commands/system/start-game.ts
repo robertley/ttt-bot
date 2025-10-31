@@ -1,8 +1,6 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
-import { initNewServer } from "../../modules/database";
 import { newGame } from "../../modules/game";
-import { updateAllSecretPlayerChannels, updateBoardChannel } from "../../modules/bot";
-import { drawBoardCanvas } from "../../modules/board";
+import { BoardModule } from "../../modules/board";
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -19,8 +17,7 @@ module.exports = {
             return;
         }
 
-        
-        let board = await drawBoardCanvas(interaction.guild).toPromise();
+        let board = await BoardModule.drawBoardCanvas(interaction.guild).toPromise();
         await interaction.editReply({ content: 'Confirm board', files: [board] });
     },
 }

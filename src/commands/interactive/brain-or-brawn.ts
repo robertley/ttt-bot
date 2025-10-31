@@ -17,7 +17,7 @@ module.exports = {
             interaction: interaction,
             task: {
                 fn: () => new Observable(sub => {
-                    getById('player', interaction.guild, interaction.user.id).then(dbObj => {
+                    getById<Player>('player', interaction.guild, interaction.user.id).then(dbObj => {
                         console.log('calling brain-or-brawn interaction task');
                         player = dbObj as Player;
                         let buttons = [];

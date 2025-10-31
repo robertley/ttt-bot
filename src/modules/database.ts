@@ -1,12 +1,13 @@
 import { Client, Guild } from "discord.js";
-import { existsSync, mkdirSync, readFile, writeFile } from "node:fs";
-import { makeEmptyBoard } from "./board";
+import { createWriteStream, existsSync, mkdirSync, readFile, unlink, writeFile } from "node:fs";
 import { DBObject } from "../interfaces/db-object.interface";
-import { env } from "node:process";
 import { Settings } from "../interfaces/settings.interface";
-import { updateSettingsChannel } from "./bot";
+import { Bot } from "./bot";
+import { get } from "node:https";
+const getUnicode = require('emoji-unicode')
 
-export type DBKey = 'board' | 'player' | 'game' | 'jury-vote' | 'player-name-record' | 'settings' | 'secret-channel-category';
+
+export type DBKey = 'board' | 'player' | 'game' | 'jury-vote' | 'jury-vote-backup' | 'player-name-record' | 'settings' | 'secret-channel-category';
 
 async function initNewServer(guild: Guild) {
     const directory = `./data/${guild.id}`;
@@ -30,6 +31,59 @@ async function initNewServer(guild: Guild) {
         await player.roles.remove(juryRole);
     });
 
+    downloadEmojis();
+}
+
+function downloadEmojis() {
+    let hitUrl = 'https://twitter.github.io/twemoji/v/13.1.0/72x72/1f4a5.png';
+    let emojiUnicode = getUnicode('⚔').replace(/\s/g, '-');
+    let attackUrl = `https://twitter.github.io/twemoji/v/13.1.0/72x72/${emojiUnicode}.png`;
+    let skullUnicode = getUnicode('💀').replace(/\s/g, '-');
+    let skullUrl = `https://twitter.github.io/twemoji/v/13.1.0/72x72/${skullUnicode}.png`;
+    let upUnicode = getUnicode('🔼').replace(/\s/g, '-');
+    let upUrl = `https://twitter.github.io/twemoji/v/13.1.0/72x72/${upUnicode}.png`;
+    let downUnicode = getUnicode('🔽').replace(/\s/g, '-');
+    let downUrl = `https://twitter.github.io/twemoji/v/13.1.0/72x72/${downUnicode}.png`;
+    let leftUnicode = getUnicode('◀').replace(/\s/g, '-');
+    let leftUrl = `https://twitter.github.io/twemoji/v/13.1.0/72x72/${leftUnicode}.png`;
+    let rightUnicode = getUnicode('▶').replace(/\s/g, '-');
+    let rightUrl = `https://twitter.github.io/twemoji/v/13.1.0/72x72/${rightUnicode}.png`;
+    
+    downloadImageFromCDN(hitUrl, `./data/emojis/hit.png`).then((message) => {
+        console.log(message);
+    }).catch((err) => {
+        console.error(`Error downloading hit emoji image: ${err}`);
+    });
+    downloadImageFromCDN(attackUrl, `./data/emojis/attack.png`).then((message) => {
+        console.log(message);
+    }).catch((err) => {
+        console.error(`Error downloading attack emoji image: ${err}`);
+    });
+    downloadImageFromCDN(skullUrl, `./data/emojis/skull.png`).then((message) => {
+        console.log(message);
+    }).catch((err) => {
+        console.error(`Error downloading skull emoji image: ${err}`);
+    });
+    downloadImageFromCDN(upUrl, `./data/emojis/up.png`).then((message) => {
+        console.log(message);
+    }).catch((err) => {
+        console.error(`Error downloading up emoji image: ${err}`);
+    });
+    downloadImageFromCDN(downUrl, `./data/emojis/down.png`).then((message) => {
+        console.log(message);
+    }).catch((err) => {
+        console.error(`Error downloading down emoji image: ${err}`);
+    });
+    downloadImageFromCDN(leftUrl, `./data/emojis/left.png`).then((message) => {
+        console.log(message);
+    }).catch((err) => {
+        console.error(`Error downloading left emoji image: ${err}`);
+    });
+    downloadImageFromCDN(rightUrl, `./data/emojis/right.png`).then((message) => {
+        console.log(message);
+    }).catch((err) => {
+        console.error(`Error downloading right emoji image: ${err}`);
+    });
 }
 
 async function initFiles(guild: Guild) {
@@ -37,6 +91,7 @@ async function initFiles(guild: Guild) {
     await truncate('player', guild);
     await truncate('game', guild);
     await truncate('jury-vote', guild);
+    await truncate('jury-vote-backup', guild);
     await truncate('secret-channel-category', guild);
     if (!existsSync(`./data/${guild.id}/player-name-record.json`)) {
         await truncate('player-name-record', guild);
@@ -47,10 +102,24 @@ async function initFiles(guild: Guild) {
             id: '1',
             apScheduleCron: '0 12 * * *',
             juryOpenScheduleCron: '0 14 * * *',
-            juryOpen: false
+            juryOpen: false,
+            juryMin3Votes: 3,
+            juryMin4Votes: 9,
+            juryMin5Votes: 99
         }
         await set('settings', guild, settings);
-        await updateSettingsChannel(guild);
+        await Bot.updateSettingsChannel(guild);
+    }
+
+    const whispersPath = `./data/${guild.id}/whispers.txt`;
+    if (!existsSync(whispersPath)) {
+        writeFile(whispersPath, '', (err) => {
+            if (err) {
+                console.error(`Error creating whispers.txt file: ${err}`);
+            } else {
+                console.log(`whispers.txt file created at ${whispersPath}`);
+            }
+        });
     }
 }
 
@@ -104,14 +173,14 @@ function reviver(key, value) {
     return value;
 }
 
-async function getAll(key: DBKey, guild: Guild): Promise<Map<string, DBObject>> {
+async function getAll<T>(key: DBKey, guild: Guild): Promise<Map<string, T>> {
     let path = `./data/${guild.id}/${key}.json`;
-    return await getObjectFromFile(path);
+    return await getObjectFromFile(path) as Map<string, T>;
 }
 
-async function getById(key: DBKey, guild: Guild, id: string = '1'): Promise<DBObject> {
+async function getById<T>(key: DBKey, guild: Guild, id: string = '1'): Promise<T> {
     let objects = await getAll(key, guild);
-    return objects.get(id);
+    return objects.get(id) as T;
 }
 
 async function set(key: DBKey, guild: Guild, object: DBObject | DBObject[]) {
@@ -145,4 +214,51 @@ async function truncate(key: DBKey, guild: Guild) {
     await writeObjectToFile(path, new Map());
 }
 
-export { initNewServer, getAll, set, getById, truncate }
+async function downloadImageFromCDN(cdnUrl, localPath) {
+    return new Promise((resolve, reject) => {
+        const fileStream = createWriteStream(localPath);
+
+        get(cdnUrl, (response) => {
+            if (response.statusCode !== 200) {
+                reject(new Error(`Failed to get image from CDN. Status code: ${response.statusCode}`));
+                return;
+            }
+
+            response.pipe(fileStream);
+
+            fileStream.on('finish', () => {
+                fileStream.close();
+                resolve(`Image downloaded and saved to: ${localPath}`);
+            });
+
+            fileStream.on('error', (err) => {
+                unlink(localPath, () => {}); // Delete incomplete file
+                reject(err);
+            });
+        }).on('error', (err) => {
+            reject(err);
+        });
+    });
+}
+
+async function pushToWhispersLog(guild: Guild, message: string) {
+    const whispersPath = `./data/${guild.id}/whispers.txt`;
+    return new Promise(async (resolve, reject) => {
+        await readFile(whispersPath, 'utf8', async (err, data) => {
+            if (err){
+                reject(err);
+            } else {
+                let newData = data + message + '\n';    
+                await writeFile(whispersPath, newData, (err) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(null);
+                    }
+                });
+            }
+        });
+    });
+}
+
+export { initNewServer, getAll, set, getById, truncate, downloadImageFromCDN, pushToWhispersLog }

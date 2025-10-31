@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
-import { removeUserFromSecretChannel } from "../../modules/bot";
+import { Bot } from "../../modules/bot";
 
 
 module.exports = {
@@ -10,7 +10,7 @@ module.exports = {
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.deferReply({ ephemeral: true });
         try {
-            let resp = await removeUserFromSecretChannel(interaction, interaction.options.get('player').user);
+            let resp = await Bot.removeUserFromSecretChannel(interaction, interaction.options.get('player').user);
         } catch (e) {
             await interaction.editReply({ content: "This is not a secret group channel" });
             return;

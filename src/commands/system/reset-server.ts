@@ -1,7 +1,4 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
-import { initNewServer } from "../../modules/database";
-import { givePlayersActionPoints } from "../../modules/game";
-import { updateAllSecretPlayerChannels } from "../../modules/bot";
 import { getConfirmButton } from "../../modules/functions";
 
 module.exports = {

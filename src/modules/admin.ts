@@ -13,7 +13,13 @@ async function resetServer(interaction: ButtonInteraction) {
                 if (channel) {
                     await channel.delete();
                 }
+                let notifChannel = await interaction.guild.channels.fetch(player.notifcationChannelId);
+                if (notifChannel) {
+                    await notifChannel.delete();
+                }
             } catch (e) {
+                console.log(e);
+                // return;
                 // channel already deleted
             }
 
@@ -42,6 +48,18 @@ async function resetServer(interaction: ButtonInteraction) {
             await categoryChannel.delete();
         }
     }
+
+    // delete all emojis in data/emojis
+    const fs = require('fs');
+    const emojiDir = './data/emojis';
+    fs.readdir(emojiDir, (err: any, files: string[]) => {
+        if (err) throw err;
+        for (const file of files) {
+            fs.unlink(`${emojiDir}/${file}`, (err: any) => {
+                if (err) throw err;
+            });
+        }
+    });
 
     // delete all database entries and re-initialize the server
     await initNewServer(interaction.guild);

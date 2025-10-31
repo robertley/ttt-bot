@@ -3,25 +3,34 @@ import { Player } from "../interfaces/player.interface";
 import { set, getById, getAll } from "./database";
 import { ActionResponse, AttackData } from "../interfaces/action-response.interace";
 import { Board } from "../interfaces/board.interface";
-import { createNotifcationPlayerChannel, createSecretPlayerChannel } from "./bot";
-import { tileIsInRange } from "./board";
-import { addPlayerToJury } from "./jury";
+import { Bot } from "./bot";
+import { BoardModule } from "./board";
+import { Jury } from "./jury";
 import { Observable } from "rxjs";
 
-async function createNewPlayer(user: User, guild: Guild, emoji): Promise<Player> {
-    let existingPlayer = await getById('player', guild, user.id) as Player;
-    if (existingPlayer != null) {
-        existingPlayer.emoji = emoji;
-        await set('player', guild, existingPlayer);
-        return existingPlayer;
+const DEV = process.env.DEV === 'true';
+
+async function createNewPlayer(user: User, guild: Guild, emoji, fake: boolean = false): Promise<Player> {
+
+    if (!fake) {
+        let existingPlayer = await getById<Player>('player', guild, user.id) as Player;
+        if (existingPlayer != null) {
+            existingPlayer.emoji = emoji;
+            await set('player', guild, existingPlayer);
+            return existingPlayer;
+        }
     }
 
+    let allPlayers = await getAll('player', guild) as Map<string, Player>;
+    let fakePlayers = Array.from(allPlayers.values()).filter(p => p.fake);
+    let fakeName = `FakePlayer${fakePlayers.length + 1}`;
+
     let player: Player = {
-        id: user.id,
-        displayName: user.displayName,
-        actionPoints: 0,
+        id: fake ? `fake-${fakePlayers.length + 1}` : user.id,
+        displayName: fake ? fakeName : user.displayName,
+        actionPoints: DEV ? 100 : 0,
         health: 3,
-        range: 2,
+        range: DEV ? 5 : 1,
         emoji: emoji,
         secretChannelId: null,
         notifcationChannelId: null,
@@ -29,10 +38,16 @@ async function createNewPlayer(user: User, guild: Guild, emoji): Promise<Player>
         kills: [],
         brainOrBrawn: null,
         sentLongRangeAp: false,
+        fake: fake
     }
 
-    player.secretChannelId = await createSecretPlayerChannel(guild, player);
-    player.notifcationChannelId = await createNotifcationPlayerChannel(guild, player);
+    player.secretChannelId = await Bot.createSecretPlayerChannel(guild, player);
+    player.notifcationChannelId = await Bot.createNotifcationPlayerChannel(guild, player);
+
+    if (fake) {
+        await set('player', guild, player);
+        return player;
+    }
 
     // give user PLAYER role
     let role = await guild.roles.fetch(process.env.PLAYER_ROLE_ID);
@@ -59,8 +74,8 @@ async function createNewPlayer(user: User, guild: Guild, emoji): Promise<Player>
 }
 
 async function getInRangePlayers(player: Player, guild: Guild): Promise<{ inRange: Player[], outOfRange: Player[] }> {
-    let board = await getById('board', guild, '1') as Board;
-    let playerMap = await getAll('player', guild) as Map<string, Player>;
+    let board = await getById<Board>('board', guild, '1') as Board;
+    let playerMap = await getAll<Player>('player', guild) as Map<string, Player>;
     let otherPlayers = Array.from(playerMap.values()).filter(p => p.id != player.id && p.health > 0);
     let inRangePlayers = [];
     let outOfRangePlayers = [];
@@ -77,8 +92,8 @@ async function getInRangePlayers(player: Player, guild: Guild): Promise<{ inRang
 
 function move(user: User, direction: 'up' | 'down' | 'left' | 'right', guild: Guild): Observable<ActionResponse> {
     return new Observable<ActionResponse>(sub => {
-        getById('player', guild, user.id).then((player: Player) => {
-            getById('board', guild, '1').then((board: Board) => {
+        getById<Player>('player', guild, user.id).then((player: Player) => {
+            getById<Board>('board', guild, '1').then((board: Board) => {
                 if (aliveCheck(player) == false) {
                     sub.next({
                         success: false,
@@ -181,7 +196,7 @@ async function afterMove(ActionResponse: ActionResponse, guild: Guild) {
 
 function attack(user: User, target: User, guild: Guild): Observable<ActionResponse> {
     return new Observable<ActionResponse>(sub => {
-        getById('player', guild, user.id).then((player: Player) => {
+        getById<Player>('player', guild, user.id).then((player: Player) => {
             if (aliveCheck(player) == false) {
                 sub.next({
                     success: false,
@@ -194,7 +209,7 @@ function attack(user: User, target: User, guild: Guild): Observable<ActionRespon
                 return;
             }
 
-            getById('player', guild, target.id).then((targetPlayer: Player) => {
+            getById<Player>('player', guild, target.id).then((targetPlayer: Player) => {
                 let action: ActionResponse = {
                     success: true,
                     error: null,
@@ -222,7 +237,7 @@ function attack(user: User, target: User, guild: Guild): Observable<ActionRespon
                     return;
                 }
             
-                getById('board', guild, '1').then((board: Board) => {
+                getById<Board>('board', guild, '1').then((board: Board) => {
                     let inRange = playerIsInRange(board, player, targetPlayer);
             
                     if (!inRange) {
@@ -268,13 +283,13 @@ function playerIsInRange(board: Board, player: Player, target: Player): boolean 
         }
     }
 
-    return tileIsInRange(targetPosition.x, targetPosition.y, playerPosition.x, playerPosition.y, player, board.tile.length);
+    return BoardModule.tileIsInRange(targetPosition.x, targetPosition.y, playerPosition.x, playerPosition.y, player, board.tile.length);
 }
 
 function giveAP(user: User, target: User, guild: Guild): Observable<ActionResponse> {
 
     return new Observable<ActionResponse>(sub => {
-        getById('player', guild, user.id).then((player: Player) => {
+        getById<Player>('player', guild, user.id).then((player: Player) => {
 
             if (aliveCheck(player) == false) {
                 sub.next({
@@ -288,7 +303,7 @@ function giveAP(user: User, target: User, guild: Guild): Observable<ActionRespon
                 return;
             }
 
-            getById('player', guild, target.id).then((targetPlayer: Player) => {
+            getById<Player>('player', guild, target.id).then((targetPlayer: Player) => {
 
                 let action: ActionResponse = {
                     success: true,
@@ -317,7 +332,7 @@ function giveAP(user: User, target: User, guild: Guild): Observable<ActionRespon
                     return;
                 }
             
-                getById('board', guild, '1').then((board: Board) => {
+                getById<Board>('board', guild, '1').then((board: Board) => {
 
                     action.board = board;
 
@@ -339,7 +354,7 @@ function giveAP(user: User, target: User, guild: Guild): Observable<ActionRespon
                         }
                     }
                 
-                    let inRange = tileIsInRange(targetPosition.x, targetPosition.y, playerPosition.x, playerPosition.y, player, board.tile.length);
+                    let inRange = BoardModule.tileIsInRange(targetPosition.x, targetPosition.y, playerPosition.x, playerPosition.y, player, board.tile.length);
                 
                     if (!inRange) {
                         action.success = false;
@@ -363,7 +378,7 @@ function giveAP(user: User, target: User, guild: Guild): Observable<ActionRespon
 function giveAPFar(user: User, target: User, guild: Guild): Observable<ActionResponse> {
 
     return new Observable<ActionResponse>(sub => {
-        getById('player', guild, user.id).then((player: Player) => {
+        getById<Player>('player', guild, user.id).then((player: Player) => {
 
             if (aliveCheck(player) == false) {
                 sub.next({
@@ -377,7 +392,7 @@ function giveAPFar(user: User, target: User, guild: Guild): Observable<ActionRes
                 return;
             }
 
-            getById('player', guild, target.id).then((targetPlayer: Player) => {
+            getById<Player>('player', guild, target.id).then((targetPlayer: Player) => {
 
                 if (player.sentLongRangeAp) {
                     sub.next({
@@ -421,7 +436,7 @@ function giveAPFar(user: User, target: User, guild: Guild): Observable<ActionRes
                     return;
                 }
             
-                getById('board', guild, '1').then((board: Board) => {
+                getById<Board>('board', guild, '1').then((board: Board) => {
 
                     action.board = board;
 
@@ -443,7 +458,7 @@ function giveAPFar(user: User, target: User, guild: Guild): Observable<ActionRes
                         }
                     }
                 
-                    let outOfRange = !tileIsInRange(targetPosition.x, targetPosition.y, playerPosition.x, playerPosition.y, player, board.tile.length);
+                    let outOfRange = !BoardModule.tileIsInRange(targetPosition.x, targetPosition.y, playerPosition.x, playerPosition.y, player, board.tile.length);
                 
                     if (!outOfRange) {
                         action.success = false;
@@ -484,13 +499,12 @@ function death(player: Player, client: Client): Observable<void> {
                     guild.members.fetch(user.id).then(async member => {
                         await member.roles.remove(pRole);
                         await member.roles.add(jRole);
+                    }).then(() => {
+                        Jury.addPlayerToJury(guild, player).subscribe(() => {
+                            sub.next(null);
+                            sub.complete();
+                        });
                     });
-
-                    setTimeout(async () => {
-                        await addPlayerToJury(guild, player);
-                    });
-
-                    sub.next(null);
 
                 });
             });
@@ -527,7 +541,7 @@ function getPlayerStatsEmbed(player: Player): Partial<Embed> {
 
 function upgradeRange(user: User, guild: Guild): Observable<ActionResponse> {
     return new Observable<ActionResponse>(sub => {
-        getById('player', guild, user.id).then((player: Player) => {
+        getById<Player>('player', guild, user.id).then((player: Player) => {
             if (aliveCheck(player) == false) {
                 sub.next({
                     success: false,
@@ -572,7 +586,7 @@ async function afterUpgradeRange(actionResponse: ActionResponse, guild: Guild) {
 function addHeart(user: User, guild: Guild): Observable<ActionResponse> {
 
     return new Observable<ActionResponse>(sub => {
-        getById('player', guild, user.id).then((player: Player) => {
+        getById<Player>('player', guild, user.id).then((player: Player) => {
             if (aliveCheck(player) == false) {
                 sub.next({
                     success: false,

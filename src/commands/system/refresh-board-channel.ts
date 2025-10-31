@@ -1,6 +1,6 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { initNewServer } from "../../modules/database";
-import { updateAllSecretPlayerChannels, updateBoardChannel } from "../../modules/bot";
+import { Bot } from "../../modules/bot";
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -8,8 +8,8 @@ module.exports = {
         .setDescription('Refresh the board channel'),
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.deferReply();
-        await updateBoardChannel(interaction.guild);
-        await updateAllSecretPlayerChannels(interaction.guild);
+        await Bot.updateBoardChannel(interaction.guild);
+        await Bot.updateAllSecretPlayerChannels(interaction.guild);
         await interaction.editReply('Board Channel Refreshed');
     },
 }

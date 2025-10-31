@@ -1,7 +1,5 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
-import { initNewServer } from "../../modules/database";
-import { newGame } from "../../modules/game";
-import { logAction, updateAllSecretPlayerChannels, updateBoardChannel } from "../../modules/bot";
+import { Bot } from "../../modules/bot";
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -9,10 +7,10 @@ module.exports = {
         .setDescription('Confirm start a new game'),
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.deferReply();
-        updateBoardChannel(interaction.guild).subscribe(() => {});
-        updateAllSecretPlayerChannels(interaction.guild).subscribe(() => {});
+        Bot.updateBoardChannel(interaction.guild).subscribe(() => {});
+        Bot.updateAllSecretPlayerChannels(interaction.guild).subscribe(() => {});
         
-        logAction(interaction.client, {
+        Bot.logAction(interaction.client, {
             success: true,
             action: 'new-game',
         }).subscribe(() => {});

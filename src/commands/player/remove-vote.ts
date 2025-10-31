@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, GuildMember, SlashCommandBuilder, User } from "discord.js";
-import { juryVote, removeVote } from "../../modules/jury";
+import { Jury } from "../../modules/jury";
 
 
 // TODO refund votes if player dies
@@ -21,7 +21,7 @@ module.exports = {
             await interaction.editReply({ content: "You must be a jury to vote" });
         }
 
-        await removeVote(interaction.guild, interaction.user);
+        await Jury.removeVote(interaction.guild, interaction.user);
         await interaction.editReply({ content: 'Vote has been removed' });
     }
 }

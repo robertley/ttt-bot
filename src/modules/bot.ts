@@ -1,5 +1,5 @@
 import { APIEmbed, ButtonComponent, ButtonInteraction, CategoryChannel, ChannelType, Client, ChatInputCommandInteraction, Embed, Guild, GuildChannel, Interaction, MessageComponentInteraction, MessageCreateOptions, MessageEditOptions, PermissionFlagsBits, TextChannel, User } from "discord.js";
-import { drawBoard, drawBoardCanvas, drawPlayerBoard } from "./board";
+import { BoardModule } from "./board";
 import { getAll, getById, set } from "./database";
 import { Player } from "../interfaces/player.interface";
 import { ActionResponse, AttackData, JuryData, MoveData } from "../interfaces/action-response.interace";
@@ -11,16 +11,18 @@ import { queueService } from "./queue-service";
 import { SecretChannelCategory } from "../interfaces/secret-channel-category.interface";
 import { defer, Observable, Observer, Subject, Subscription } from "rxjs";
 import { Game } from "../interfaces/game.interface";
+import { BotTaskService } from "./bot-task-service";
+import { Settings } from "../interfaces/settings.interface";
 
 function updateBoardChannel(guild: Guild): Observable<void> {
     return new Observable<void>(sub => {
         console.log('update board channel')
 
         let client = guild.client;
-        getById('game', guild, '1').then(dbObj => {
+        getById<Game>('game', guild, '1').then(dbObj => {
             let game = dbObj as Game;
                     // let boardEmbed: Partial<Embed>;
-            drawBoardCanvas(guild, {}).subscribe((board) => {
+            BoardModule.drawBoardCanvas(guild, {}).subscribe((board) => {
 
                 getAll('player', guild).then((players: Map<string, Player>) => {
 
@@ -149,6 +151,8 @@ function updateBoardChannel(guild: Guild): Observable<void> {
                         }
                         let messageArray = Array.from(messages.values());
                         messageArray[0].edit({ files: files, embeds: embeds});
+                        sub.next();
+                        sub.complete();
                     });
                 });
             });
@@ -160,8 +164,10 @@ function updateBoardChannel(guild: Guild): Observable<void> {
 
 function logAction(client: Client, action: ActionResponse): Observable<void> {
     return new Observable<void>((sub) => {
+        console.log(`Logging action: ${action.action}`);
         if (action.success == false) {
             sub.next();
+            sub.complete();
             return;
         }
 
@@ -215,7 +221,7 @@ function logAction(client: Client, action: ActionResponse): Observable<void> {
 
         let boardCanvas = null;
         if (action.action == 'move' || action.action == 'attack') {
-            drawBoardCanvas(channel.guild, {
+            BoardModule.drawBoardCanvas(channel.guild, {
                 actionResponse: action,
             }).subscribe((board) => {
                 boardCanvas = board;
@@ -224,11 +230,9 @@ function logAction(client: Client, action: ActionResponse): Observable<void> {
                     sub.complete();
                 });
             });
-            return;
         }
-
-        if (action.action == 'range-upgrade') {
-            drawBoardCanvas(channel.guild, {
+        else if (action.action == 'range-upgrade') {
+            BoardModule.drawBoardCanvas(channel.guild, {
                 player: action.player
             }).subscribe((board) => {
                 boardCanvas = board;
@@ -237,13 +241,14 @@ function logAction(client: Client, action: ActionResponse): Observable<void> {
                     sub.complete();
                 });
             });
-            return;
+        }
+        else {
+            channel.send({ content: actionMessage  }).then(() => {
+                sub.next();
+                sub.complete();
+            });
         }
 
-        channel.send({ content: actionMessage  }).then(() => {
-            sub.next();
-            sub.complete();
-        });
     });
     
 }
@@ -251,17 +256,17 @@ function logAction(client: Client, action: ActionResponse): Observable<void> {
 async function createSecretPlayerChannel(guild: Guild, player: Player): Promise<string> {
 
     let channel = await guild.channels.create({
-        name: `commands-${player.emoji}-${player.displayName}`,
+        name: `actions-${player.emoji}-${player.displayName}`,
         type: ChannelType.GuildText,
         permissionOverwrites: [
             {
                 id: guild.id,
                 deny: [PermissionFlagsBits.ViewChannel]
             },
-            {
+            ...(!player.fake ? [{
                 id: player.id,
                 allow: [PermissionFlagsBits.ViewChannel],
-            },
+            }] : []),
         ],
     });
 
@@ -282,10 +287,10 @@ async function createNotifcationPlayerChannel(guild: Guild, player: Player): Pro
                 id: guild.id,
                 deny: [PermissionFlagsBits.ViewChannel]
             },
-            {
+            ...(!player.fake ? [{
                 id: player.id,
                 allow: [PermissionFlagsBits.ViewChannel],
-            },
+            }] : []),
         ],
     });
 
@@ -352,6 +357,7 @@ async function newSecretChannelCategory(guild: Guild): Promise<CategoryChannel> 
 }
 
 async function addUserToSecretChannel(interaction: ChatInputCommandInteraction, user: User): Promise<void> {
+    console.log('Adding user to secret channel');
     let channel = interaction.channel as TextChannel;
     if (channel.parent.id != process.env.SECRET_CATEGORY_ID && channel.parent.id != process.env.SECRET_CATEGORY_ID_2) {
         await interaction.editReply({ content: 'This is not a secret channel' });
@@ -364,9 +370,8 @@ async function addUserToSecretChannel(interaction: ChatInputCommandInteraction, 
         }
     );
 
-    let invitee = await getById('player', interaction.guild, user.id) as Player;
-    let player = await getById('player', interaction.guild, interaction.user.id) as Player;
-
+    let invitee = await getById<Player>('player', interaction.guild, user.id);
+    let player = await getById<Player>('player', interaction.guild, interaction.user.id);
     await sendPlayerNotification(interaction.guild, invitee, `<@${player.id}> has added you to the secret channel ${channel.name}`);
     return;
 }
@@ -391,12 +396,12 @@ function updateSecretPlayerChannel(guild: Guild, player: Player): Observable<Tex
         let channelId = player.secretChannelId;
         let channel = guild.channels.cache.get(channelId) as TextChannel;
         let playerEmbed = getPlayerStatsEmbed(player);
-        getById('game', guild, '1').then((dbObj) => {
+        getById<Game>('game', guild, '1').then((dbObj) => {
             let game = dbObj as Game;
 
             let files = [];
             if (game != null) {
-                drawBoardCanvas(guild, {
+                BoardModule.drawBoardCanvas(guild, {
                     player: player,
                 }).subscribe((playerBoard) => {
                     files.push(playerBoard);
@@ -514,7 +519,7 @@ async function sendPlayerNotification(guild: Guild, player: Player, message: str
     let channel = player.notifcationChannelId;
     let textChannel = guild.channels.cache.get(channel) as TextChannel;
 
-    await textChannel.send({content: message, components: [{type: 1, components: [getDeleteMeButton()]}]});
+    await textChannel.send({content: message, components: []})//[{type: 1, components: [getDeleteMeButton()]}]});
 }
 
 function killPlayerEvents(guild: Guild, player: Player, target: Player): Observable<void> {
@@ -525,7 +530,7 @@ function killPlayerEvents(guild: Guild, player: Player, target: Player): Observa
         let earnedAP = Math.floor(target.actionPoints / 2);
 
         let channel = guild.channels.cache.get(player.notifcationChannelId) as TextChannel;
-        channel?.send({content: `You have killed ${target.emoji} <@${target.id}>  and earned ${earnedAP} AP`, components: [{type: 1, components: [getDeleteMeButton()]}]});
+        channel?.send({content: `You have killed ${target.emoji} <@${target.id}>  and earned ${earnedAP} AP`, components: []})//[{type: 1, components: [getDeleteMeButton()]}]});
 
         death(target, guild.client).subscribe(() => {
             let targetAP = target.actionPoints;
@@ -534,7 +539,10 @@ function killPlayerEvents(guild: Guild, player: Player, target: Player): Observa
             player.kills.push(target.emoji);
 
             let channel = guild.channels.cache.get(target.notifcationChannelId) as TextChannel;
-            channel?.send({content: `<@${target.id}> You have been killed by <@${player.id}> 💀`, components: [{type: 1, components: [getDeleteMeButton()]}]});
+            channel?.send({content: `<@${target.id}> You have been killed by <@${player.id}> 💀`, components: []})// [{type: 1, components: [getDeleteMeButton()]}]});
+            
+            BotTaskService.addCommonTask('update-all-secret-channels', guild).subscribe((resp) => {});
+            BotTaskService.addCommonTask('update-board-channel', guild).subscribe((resp) => {});
 
             sub.next();
             sub.complete();
@@ -543,7 +551,7 @@ function killPlayerEvents(guild: Guild, player: Player, target: Player): Observa
 }
 
 async function updateSetting(guild: Guild, key: string, value: string): Promise<void> {
-    let settings = await getById('settings', guild, '1');
+    let settings = await getById<Settings>('settings', guild, '1');
     settings[key] = value;
     await set('settings', guild, settings);
     await updateSettingsChannel(guild);
@@ -557,7 +565,7 @@ async function updateSetting(guild: Guild, key: string, value: string): Promise<
 
 async function updateSettingsChannel(guild: Guild): Promise<void> {
     let channel = guild.channels.cache.get(process.env.SETTINGS_CHANNEL_ID) as TextChannel;
-    let settings = await getById('settings', guild, '1');
+    let settings = await getById<Settings>('settings', guild, '1');
     if (settings == null) {
         return;
     }
@@ -599,7 +607,38 @@ async function messageInteractionReply(interaction: MessageComponentInteraction,
     }
 }
 
-export {
+function resetSecretPlayerChannel(player: Player, guild: Guild): Observable<void> {
+    return new Observable<void>((resetSub) => {
+        BotTaskService.addTask({
+            name: `Reset Secret Channel for ${player.displayName}`,
+            priority: 'low',
+            fn: () => {
+                return new Observable(sub => {
+                    let channel = guild.channels.cache.get(player.secretChannelId) as TextChannel;
+                    // delete all messages in the channel
+                    channel.messages.fetch().then(messages => {
+                        let deletePromises = [];
+                        messages.forEach(message => {
+                            deletePromises.push(message.delete());
+                        });
+                        Promise.all(deletePromises).then(() => {
+                            updateSecretPlayerChannel(guild, player).subscribe(resp =>{
+                                sub.next(null);
+                                sub.complete();
+                            });
+                        });
+                    });
+                    
+                });
+            }
+        }).subscribe(res => {
+            resetSub.next();
+            resetSub.complete();
+        });
+    })
+}
+
+export const Bot = {
     updateBoardChannel,
     logAction,
     createSecretPlayerChannel,
@@ -612,5 +651,6 @@ export {
     killPlayerEvents,
     updateSettingsChannel,
     updateSetting,
-    messageInteractionReply
+    messageInteractionReply,
+    resetSecretPlayerChannel
 };

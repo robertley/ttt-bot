@@ -1,6 +1,9 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { createNewPlayer } from "../../modules/player";
-import { updateBoardChannel } from "../../modules/bot";
+import { Bot } from "../../modules/bot";
+import { createWriteStream, unlink, writeFileSync } from "fs";
+import { get } from "https";
+import { downloadImageFromCDN } from "../../modules/database";
 
 const getUnicode = require('emoji-unicode')
 
@@ -40,15 +43,23 @@ module.exports = {
             const emojiUnicode = getUnicode(emoji).replace(/\s/g, '-');
             
             // Updated URL to the current CDN for Twemoji
-            const emojiImage = `https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/${emojiUnicode}.svg`;
+            // const emojiImage = `https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/${emojiUnicode}.svg`;
+
+            const emojiImage = `https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/${emojiUnicode}.png`
             
             // Alternative URL if the above doesn't work
-            const emojiImageAlt = `https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/${emojiUnicode}.png`;
+            // const emojiImageAlt = `https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/${emojiUnicode}.png`;
             
-            // Check if the emoji image exists
-            const isValid = await isValidImageUrl(emojiImage) || await isValidImageUrl(emojiImageAlt);
-            
-            if (!isValid) {
+            if (await isValidImageUrl(emojiImage)) {
+                console.log(`Emoji image found at: ${emojiImage}`);
+                // save image as new PNG file
+                await saveEmojiImage(emojiImage, user.id);
+            // } else if (await isValidImageUrl(emojiImageAlt)) {
+            //     console.log(`Emoji image found at: ${emojiImageAlt}`);
+            //     // save image as new PNG file
+            //     await saveEmojiImage(emojiImageAlt, user.id);
+            } else {
+                console.log(`Emoji image not found at either URL.`);
                 await interaction.editReply(`Invalid emoji. Please choose a standard emoji.`);
                 return;
             }
@@ -57,11 +68,19 @@ module.exports = {
             await interaction.editReply(`Player ${user.displayName} added to the game!`);
 
             // setTimeout(async () => {
-            //     await updateBoardChannel(interaction.guild);
+            //     await Bot.updateBoardChannel(interaction.guild);
             // });
         } catch (err) {
             console.error(err);
             await interaction.editReply('There was an error adding the player to the game.');
         }
     },
+}
+
+async function saveEmojiImage(url: string, playerId: string): Promise<void> {
+    await downloadImageFromCDN(url, `./data/emojis/${playerId}.png`).then((message) => {
+        console.log(message);
+    }).catch((err) => {
+        console.error(`Error downloading emoji image: ${err}`);
+    });
 }

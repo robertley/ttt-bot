@@ -1,10 +1,6 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
-import { getById } from "../../modules/database";
-import { Player } from "../../interfaces/player.interface";
-import { getDeleteMeButton } from "../../modules/functions";
 import { BotInteraction, BotInteractionService } from "../../modules/bot-interaction.service";
 import { Observable } from "rxjs";
-import { get } from "http";
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -14,7 +10,7 @@ module.exports = {
 
         let botInteraction: BotInteraction<string> = {
             interaction: interaction,
-            epehemeral: false,
+            ephemeral: false,
             task: {
                 fn: () => new Observable<string>(sub => {
                     let playerUser = interaction.user;

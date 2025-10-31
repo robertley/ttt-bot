@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
-import { updateSettingsChannel } from "../../modules/bot";
+import { Bot } from "../../modules/bot";
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -7,7 +7,7 @@ module.exports = {
         .setDescription('Refresh the settings channel'),
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.deferReply();
-        await updateSettingsChannel(interaction.guild);
+        await Bot.updateSettingsChannel(interaction.guild);
         await interaction.editReply('Settings Refreshed');
     },
 }

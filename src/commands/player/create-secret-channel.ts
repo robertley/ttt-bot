@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
-import { createSecretGroupChannel } from "../../modules/bot";
+import { Bot } from "../../modules/bot";
 
 
 module.exports = {
@@ -9,7 +9,7 @@ module.exports = {
         .addStringOption(option => option.setName('name').setDescription('The name of the channel').setRequired(true)),
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.deferReply({ ephemeral: true });
-        await createSecretGroupChannel(interaction.guild, interaction.user, interaction.options.get('name').value as string);
+        await Bot.createSecretGroupChannel(interaction.guild, interaction.user, interaction.options.get('name').value as string);
         await interaction.editReply({ content: 'Channel created' });
     }
 }

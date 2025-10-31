@@ -1,9 +1,5 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { getById, initNewServer } from "../../modules/database";
-import { drawBoardCanvas, drawPlayerBoard } from "../../modules/board";
-import { Player } from "../../interfaces/player.interface";
-import { getDeleteMeButton } from "../../modules/functions";
-import { get } from "http";
 import { PlayerNameRecord } from "../../interfaces/player-name-record.inteface";
 import { BotInteraction, BotInteractionService } from "../../modules/bot-interaction.service";
 import { Observable } from "rxjs";
@@ -18,10 +14,10 @@ module.exports = {
 
         let botInteraction: BotInteraction<string> = {
             interaction: interaction,
-            epehemeral: true,
+            ephemeral: true,
             task: {
                 fn: () => new Observable<string>(sub => {
-                    getById('player-name-record', interaction.guild, interaction.options.get('player').user.id).then((nameRecord: PlayerNameRecord) => {
+                    getById<PlayerNameRecord>('player-name-record', interaction.guild, interaction.options.get('player').user.id).then((nameRecord: PlayerNameRecord) => {
                         if (nameRecord) {
                             sub.next(`The player's name is ${nameRecord.name}`);
                         } else {

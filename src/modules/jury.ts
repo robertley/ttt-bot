@@ -3,66 +3,9 @@ import { getAll, getById, set, truncate } from "./database";
 import { JuryVote } from "../interfaces/jusy-vote.interface";
 import { Player } from "../interfaces/player.interface";
 import { ActionResponse } from "../interfaces/action-response.interace";
-import { logAction, updateSecretPlayerChannel } from "./bot";
+import { Bot } from "./bot";
 import { Settings } from "../interfaces/settings.interface";
-import { queueService } from "./queue-service";
-
-
-async function createJuryVote(guild: Guild): Promise<void> {
-    let channel = guild.channels.cache.get(process.env.JURY_VOTE_CHANNEL_ID) as TextChannel;
-    let players = await getAll('player', guild) as Map<string, Player>;
-    let alivePlayers = Array.from(players.values()).filter(p => p.health > 0);
-    // let message = 'Players:';
-    let buttons = [];
-    alivePlayers = [
-        ...alivePlayers,
-        ...alivePlayers,
-        ...alivePlayers,
-        ...alivePlayers,
-        ...alivePlayers,
-        ...alivePlayers,
-    ]
-    for (let player of alivePlayers) {
-        buttons.push({
-            type: 2,
-            style: 2,
-            label: `\n${player.emoji} ${player.displayName} 0`,
-            custom_id: player.id,
-        });
-    }
-
-    let removeVoteButton = {
-        type: 2,
-        style: 4,
-        label: 'Remove Vote',
-        custom_id: 'remove-vote',
-    }
-
-    buttons.push(removeVoteButton);
-
-    // let embed: APIEmbed = {
-    //     title: 'Jury Vote',
-    //     description: message,
-    // }
-
-    let components = [
-        {
-            type: 1,
-            components: buttons,
-        }
-    ]
-
-    let message: MessageCreateOptions = { content: 'Vote for who will get an extra AP when APs are distributed', components: components };
-
-    await channel.messages.fetch({ limit: 1 }).then(async messages => {
-        if (messages.size == 0) {
-            await channel.send(message);
-            return;
-        }
-        let messageArray = Array.from(messages.values());
-        await messageArray[0].edit(message as MessageEditOptions);
-    });
-}
+import { Observable } from "rxjs";
 
 async function juryVote(guild: Guild, player: User, candidate: User) {
     let vote = candidate.id;
@@ -138,8 +81,9 @@ async function finalizeJuryVote(guild: Guild): Promise<ActionResponse> {
     let voteCount = countVotes(votes);
     let winners = [];
     let winnerCount = 0;
+    let votesRequired = 1 // await getJuryVotesRequired(guild).toPromise();
     for (let [playerId, count] of voteCount) {
-        if (count >= 3) {
+        if (count >= votesRequired) {
             winners.push(playerId);
             winnerCount++;
         }
@@ -153,25 +97,23 @@ async function finalizeJuryVote(guild: Guild): Promise<ActionResponse> {
         winners: [],
     }
     for (let winnerId of winners) {
-        let winner = await getById('player', guild, winnerId) as Player;
+        let winner = await getById<Player>('player', guild, winnerId) as Player;
         winner.actionPoints++;
         response.data.winners.push(winner);
         await set('player', guild, winner);
-        // queueService.addLowPriority(async () => await updateSecretPlayerChannel(guild, winner))
+        // queueService.addLowPriority(async () => await Bot.updateSecretPlayerChannel(guild, winner))
     }
 
-    await logAction(guild.client, response);
+    await set('jury-vote-backup', guild, Array.from(votes.values()));
+    await truncate('jury-vote', guild);
 
-
-
-    // await truncate('jury-vote', guild);
-    // await createJuryVote(guild);
+    await Bot.logAction(guild.client, response).toPromise();
 
     return response;
 }
 
 async function closeJury(guild: Guild): Promise<void> {
-    let settings = await getById('settings', guild) as Settings;
+    let settings = await getById<Settings>('settings', guild) as Settings;
     // await truncate('jury-vote', guild);
     settings.juryOpen = false;
     await set('settings', guild, settings);
@@ -188,38 +130,75 @@ function countVotes(votes: Map<string, JuryVote>): Map<string, number> {
             count = 0;
         }
         count++;
-    voteCount.set(vote.vote, count);
+        voteCount.set(vote.vote, count);
     });
     return voteCount;
 }
 
-async function addPlayerToJury(guild: Guild, player: Player): Promise<void> {
-    let juryChannel = guild.client.channels.cache.get(process.env.JURY_CHANNEL_ID) as TextChannel;
-    let message = `Welcome to the jury, <@${player.id}>!`;
-    await juryChannel.send(message);
+function addPlayerToJury(guild: Guild, player: Player): Observable<void> {
+    return new Observable<void>(sub => {
 
-    let juryMemebers = guild.roles.cache.get(process.env.JURY_ROLE_ID).members;
-    if (juryMemebers.size < 3) {
-        message =  'Waiting for three Jury members to start voting.';
-    }
-    if (juryMemebers.size == 3) {
-        message = 'Three members of the jury have been assembled. You must all vote for the same player for them to recieve the bonus AP. You will be notified when a vote has started.';
-    }
-    if (juryMemebers.size > 3) {
-        message = `${juryMemebers.size} members of the jury have been assembled. Any player with at least 3 votes will recieve one bonus AP. You will be notified when a vote has started.`;
-    }
-    await juryChannel.send(message);
+        getById<Settings>('settings', guild, '1').then(settings => {
+            let juryChannel = guild.client.channels.cache.get(process.env.JURY_CHANNEL_ID) as TextChannel;
+            let message = `Welcome to the jury, <@${player.id}>!`;
+            juryChannel.send(message).then(() => {
+                let juryMembers = guild.roles.cache.get(process.env.JURY_ROLE_ID).members;
+                getJuryVotesRequired(guild).subscribe((votesRequired) => {
+                    if (votesRequired == null) {
+                        message =  `Waiting for ${settings.juryMin3Votes} Jury members to start voting.`;
+                    } else {
+                        message = `${juryMembers.size} members of the jury have been assembled. Any player with at least **${votesRequired}** votes will recieve one bonus AP. You will be notified when a vote has started.`;
+                    }
+
+                    juryChannel.send(message);
+
+                    sub.next();
+                    sub.complete();
+                });
+
+            });
+        });
+
+    });
 }
 
-async function getVoteCount(guild: Guild): Promise<number> {
-    let votes = await getAll('jury-vote', guild) as Map<string, JuryVote>;
-    let count = 0;
-    for (let vote of votes.values()) {
-        if (vote.vote != null) {
-            count++;
-        }
-    }
-    return count;
+function getJuryVotesRequired(guild: Guild): Observable<number> {
+    return new Observable<number>(sub => {
+        getById<Settings>('settings', guild, '1').then(settings => {
+            let juryMembers = guild.roles.cache.get(process.env.JURY_ROLE_ID).members;
+            let amt = null;
+            if (juryMembers.size < settings.juryMin3Votes) {
+                amt = null;
+            }
+            else if (juryMembers.size < settings.juryMin4Votes) {
+                amt = 3;
+            }
+            else if (juryMembers.size < settings.juryMin5Votes) {
+                amt = 4;
+            } else {
+                amt = 5;
+            }
+            sub.next(amt);
+            sub.complete();
+        });
+    });
 }
 
-export { handleVoteButton, finalizeJuryVote, addPlayerToJury, createJuryVote, juryVote, removeVote, getVoteCount, closeJury }
+function getVoteCount(guild: Guild): Observable<{votes: number, votesRequired: number}> {
+    return new Observable<{votes: number, votesRequired: number}>(sub => {
+        getAll<JuryVote>('jury-vote', guild).then(votes => {
+            getJuryVotesRequired(guild).subscribe((votesRequired) => {
+                let count = 0;
+                for (let vote of votes.values()) {
+                    if (vote.vote != null) {
+                        count++;
+                    }
+                }
+                sub.next({ votes: count, votesRequired: votesRequired });
+                sub.complete();
+            });
+        });
+    });
+}
+
+export const Jury = { handleVoteButton, finalizeJuryVote, addPlayerToJury, juryVote, removeVote, getVoteCount, closeJury }

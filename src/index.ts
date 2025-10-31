@@ -12,15 +12,8 @@ import {
 import path from 'path';
 import * as fs from 'fs';
 import { initNewServer } from './modules/database';
-import { handleVoteButton } from './modules/jury';
-import { scheduleJob } from 'node-schedule';
-import { givePlayersActionPoints } from './modules/game';
-import { updateAllSecretPlayerChannels } from './modules/bot'
 import { initScheduledJobs } from './modules/scheduler';
-import { queueService } from './modules/queue-service';
 import { resetServer } from './modules/admin';
-import { Observable } from 'rxjs';
-import { BotTaskService, Task } from './modules/bot-task-service';
 import { BotInteraction, BotInteractionService } from './modules/bot-interaction.service';
 const TOKEN = process.env.TOKEN;
 

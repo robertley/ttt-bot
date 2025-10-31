@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder, TextChannel } from "discord.js";
-import { getById } from "../../modules/database";
+import { getById, pushToWhispersLog } from "../../modules/database";
 import { Player } from "../../interfaces/player.interface";
 import { getDeleteMeButton } from "../../modules/functions";
 
@@ -11,7 +11,7 @@ module.exports = {
         .addStringOption(option => option.setName('message').setDescription('message you are whispering').setRequired(true)),
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.deferReply({ ephemeral: true });
-        let player = await getById('player', interaction.guild, interaction.user.id) as Player;
+        let player = await getById<Player>('player', interaction.guild, interaction.user.id) as Player;
         let target = interaction.options.get('player').user;
 
         let buttons = [];
@@ -19,7 +19,7 @@ module.exports = {
         //     buttons.push(getDeleteMeButton());
         // }
 
-        let targetPlayer = await getById('player', interaction.guild, target.id) as Player;
+        let targetPlayer = await getById<Player>('player', interaction.guild, target.id) as Player;
         let targetPlayerChannel = interaction.guild.channels.cache.get(targetPlayer.notifcationChannelId) as TextChannel;
         if (!targetPlayerChannel) {
             await interaction.editReply({
@@ -29,13 +29,17 @@ module.exports = {
             return;
         }
 
+        let message = interaction.options.get('message').value as string;
+
         await targetPlayerChannel.send({
-            content: `${target} - Someone whispered to you: "*${interaction.options.get('message').value}*"`, components: [{type: 1, components: [getDeleteMeButton()]}]
+            content: `${target} - Someone whispered to you: "*${message}*"`, components: []//{type: 1, components: [getDeleteMeButton()]}]
         });
 
         await interaction.editReply({
-            content: `You whispered to ${target.displayName}: "*${interaction.options.get('message').value}*"`,
+            content: `You whispered to ${target.displayName}: "*${message}*"`,
             components: buttons.length > 0 ? [{type: 1, components: buttons}] : null
         });
+
+        pushToWhispersLog(interaction.guild, message);
     },
 }

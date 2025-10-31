@@ -1,7 +1,7 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { initNewServer } from "../../modules/database";
 import { givePlayersActionPoints } from "../../modules/game";
-import { updateAllSecretPlayerChannels } from "../../modules/bot";
+import { Bot } from "../../modules/bot";
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -16,6 +16,6 @@ module.exports = {
         }
         await givePlayersActionPoints(interaction.guild, amount);
         await interaction.editReply('AP given');
-        updateAllSecretPlayerChannels(interaction.guild).subscribe(() => {});
+        Bot.updateAllSecretPlayerChannels(interaction.guild).subscribe(() => {});
     },
 }

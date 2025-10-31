@@ -12,4 +12,5 @@ export interface Player extends DBObject {
     kills: string[];
     brainOrBrawn: 'brain' | 'brawn';
     sentLongRangeAp: boolean;
+    fake: boolean;
 }

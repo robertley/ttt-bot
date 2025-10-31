@@ -1,6 +1,6 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { createNewPlayer } from "../../modules/player";
-import { updateBoardChannel } from "../../modules/bot";
+import { Bot } from "../../modules/bot";
 import { set } from "../../modules/database";
 import { PlayerNameRecord } from "../../interfaces/player-name-record.inteface";
 

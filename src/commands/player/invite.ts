@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder, User } from "discord.js";
-import { addUserToSecretChannel } from "../../modules/bot";
+import { Bot } from "../../modules/bot";
 
 
 module.exports = {
@@ -25,7 +25,7 @@ module.exports = {
         }
 
         try {
-            let resp = await addUserToSecretChannel(interaction, interaction.options.get('player').user);
+            let resp = await Bot.addUserToSecretChannel(interaction, interaction.options.get('player').user);
         } catch (e) {
             console.error(e);
             await interaction.editReply({ content: "This is not a secret group channel" });

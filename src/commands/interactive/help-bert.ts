@@ -11,7 +11,7 @@ module.exports = {
         // TODO verify that this works - problems with delete me button
         let BotInteraction: BotInteraction<void> = {
             interaction: interaction,
-            epehemeral: true,
+            ephemeral: true,
             task: null,
             response: () => {
                 let message = interaction.options.get('message')?.value;

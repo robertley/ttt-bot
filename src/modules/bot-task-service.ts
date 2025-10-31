@@ -1,5 +1,9 @@
 import { Observable, Subject, Subscription } from "rxjs";
 import { ActionResponse } from "../interfaces/action-response.interace";
+import { Guild } from "discord.js";
+import { Bot } from "./bot";
+
+const DEV = process.env.DEV === 'true';
 
 export interface Task<T> {
     fn: () => Observable<T>;
@@ -9,7 +13,7 @@ export interface Task<T> {
     dataBaseFn?: (resp: T) => Promise<void>; // Optional function to interact with the database
     playerId?: string; // Optional user ID associated with the task
     skipTimeout?: boolean; // If true, the task will not be subject to timeout delays
-    taskId?: 'update-all-secret-channels'; // Optional ID associated with the task
+    taskId?: 'update-all-secret-channels' | 'update-board-channel'; // Optional ID associated with the task
 }
 
 export interface AddTaskResult<T> {
@@ -25,7 +29,7 @@ const taskSubjMap: Map<Date, Subject<any>> = new Map();
 const playerLastTaskMap: Map<string, number> = new Map();
 
 const taskQueue: Task<any>[] = [];
-const taskDelay = 5000;
+const taskDelay = DEV ? 500 : 5000;
 
 function addTask(task: Task<any>): Subject<AddTaskResult<any>> {
 
@@ -56,6 +60,14 @@ function addTask(task: Task<any>): Subject<AddTaskResult<any>> {
         let existingTaskIndex = taskQueue.findIndex(t => t.taskId === 'update-all-secret-channels');
         if (existingTaskIndex !== -1) {
             console.log('An update-all-secret-channels task is already in the queue, ignoring this one.');
+            return;
+        }
+    }
+
+    if (task.taskId === 'update-board-channel') {
+        let existingTaskIndex = taskQueue.findIndex(t => t.taskId === 'update-board-channel');
+        if (existingTaskIndex !== -1) {
+            console.log('An update-board-channel task is already in the queue, ignoring this one.');
             return;
         }
     }
@@ -93,18 +105,18 @@ function processTasks() {
 
     const task = taskQueue.shift();
 
-    console.log(`Starting task ${task.name} with priority ${task.priority}, ${task.fn}`);
+    console.log(`Starting task ${task.name} with priority ${task.priority}`);
 
     currentTask = task;
 
     currentTaskSubs = task.fn().subscribe({
         next: async (resp) => {
             console.log(`Task ${task.name} completed successfully.`);
-            console.log(resp && ('success' in resp) && resp.success == false);
+            // console.log(resp && ('success' in resp) && resp.success == false);
             let subj = taskSubjMap.get(task.date);
 
             // if task fails in task function
-            if (resp && ('success' in resp) && resp.success == false) {
+            if (resp && typeof resp === 'object' && ('success' in resp) && resp.success == false) {
                 subj?.next({ date: task.date, resp: resp, error: 'task function failure' });
                 subj?.complete();
                 taskSubjMap.delete(task.date);
@@ -137,6 +149,43 @@ function processTasks() {
     });
 }
 
+function addCommonTask(task: 'update-all-secret-channels' | 'update-board-channel', guild: Guild): Observable<AddTaskResult<any>> {
+    return new Observable<AddTaskResult<any>>(sub => {
+        let fn;
+        let priority: 'low' | 'high' = 'low'; // pretty sure this should never be high priority in 'common tasks'
+        let name = null;
+        let taskId = null;   
+        switch (task) {
+            case 'update-all-secret-channels':
+                fn = () => Bot.updateAllSecretPlayerChannels(guild);
+                name = `update all secret channels`;
+                taskId = `update-all-secret-channels`;
+                break;
+            case 'update-board-channel':
+                fn = () => Bot.updateBoardChannel(guild);
+                name = `update board channel`;
+                taskId = `update-board-channel`;
+                break;
+            
+        }
+
+        addTask({
+            fn: fn,
+            priority: priority,
+            name: name,
+            taskId: taskId
+        })//?.subscribe((resp) => { wont return sub when ignoring duplicates
+            // this locks up the bot
+            // not sure why... might need to fix this later but for now don't need to know when common task is done
+            // sub.next(resp);
+            // sub.complete();
+        //});
+        sub.next(null);
+        sub.complete();
+    });
+}
+
 export const BotTaskService = {
     addTask,
+    addCommonTask,
 };

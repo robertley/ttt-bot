@@ -6,18 +6,19 @@ import { getDeleteMeButton } from "./functions";
 import { addHeart, afterAttack, afterMove, afterSendAP, afterUpgradeRange, attack, getInRangePlayers, giveAP, giveAPFar, move, upgradeRange } from "./player";
 import { Observable } from "rxjs";
 import { ActionResponse } from "../interfaces/action-response.interace";
-import { killPlayerEvents, logAction, updateAllSecretPlayerChannels, updateSecretPlayerChannel } from "./bot";
+import { Bot } from "./bot";
+import { BoardModule } from "./board";
 
 export interface BotInteraction<T> {
     interaction: ChatInputCommandInteraction;
     task: Task<T>;
     response: (taskResponse: T) => string;
-    epehemeral?: boolean;
+    ephemeral?: boolean;
 }
 
 async function doBotInteraction(botInteraction: BotInteraction<any>): Promise<void> {
     let chatInteraction = botInteraction.interaction;
-    await chatInteraction.deferReply({ ephemeral: botInteraction.epehemeral ?? false });
+    await chatInteraction.deferReply({ ephemeral: botInteraction.ephemeral ?? false });
 
     if (!botInteraction.task) {
         await reply(botInteraction, botInteraction.response(null));
@@ -25,8 +26,8 @@ async function doBotInteraction(botInteraction: BotInteraction<any>): Promise<vo
     }
 
     BotTaskService.addTask(botInteraction.task).subscribe({
-        next: async (res) => {
-            await reply(botInteraction, botInteraction.response(res));
+        next: async (res: AddTaskResult<any>) => {
+            await reply(botInteraction, botInteraction.response(res.resp));
         },
         error: async (err) => {
             await replyWithError(botInteraction, err);
@@ -36,7 +37,7 @@ async function doBotInteraction(botInteraction: BotInteraction<any>): Promise<vo
 
 async function reply(botInteraction: BotInteraction<any>, message: string): Promise<void> {
     let interaction = botInteraction.interaction;
-    let player = await getById('player', interaction.guild, interaction.user.id) as Player;
+    let player = await getById<Player>('player', interaction.guild, interaction.user.id);
     let buttons = [];
     if (player?.secretChannelId == interaction.channelId || player?.notifcationChannelId == interaction.channelId) {
         buttons.push(getDeleteMeButton());
@@ -50,7 +51,7 @@ async function reply(botInteraction: BotInteraction<any>, message: string): Prom
 
 async function replyWithError(botInteraction: BotInteraction<any>, error: any): Promise<void> {
     let interaction = botInteraction.interaction;
-    let player = await getById('player', interaction.guild, interaction.user.id) as Player;
+    let player = await getById<Player>('player', interaction.guild, interaction.user.id);
     let buttons = [];
     if (player?.secretChannelId == interaction.channelId || player?.notifcationChannelId == interaction.channelId) {
         buttons.push(getDeleteMeButton());
@@ -78,7 +79,7 @@ async function sendMessageToChannel(channel: TextChannel, opts: {
 }
 
 async function handleAPButton(interaction: ButtonInteraction) {
-    console.log(`Handling AP button: ${interaction.customId} for user ${interaction.user.tag}??`);
+
     await interaction.deferReply({ ephemeral: true });
     let action = interaction.customId.split('-')[1];
     let actionSecondary = interaction.customId.split('-')[2];
@@ -171,11 +172,12 @@ async function handleAPButton(interaction: ButtonInteraction) {
     }).subscribe({
         next: async (result: AddTaskResult<ActionResponse>) => {
 
-            const logActions = ['move', 'attack', 'upgradeRange', 'heal'];
+            const logActions = ['move', 'attack', 'range-upgrade', 'heal'];
             const noLogActions = ['give-ap', 'give-ap-far'];
-            const cooldownActions = ['move', 'attack', 'upgradeRange', 'heal'];
+            const cooldownActions = ['move', 'attack', 'range-upgrade', 'heal'];
             const noCooldownActions = ['give-ap', 'give-ap-far'];
             const updateAllChannelActions = ['move'];
+            const updateBoardChannelActions = ['move', 'heal'];
 
             let actionResponse = result.resp as ActionResponse;
 
@@ -199,12 +201,13 @@ async function handleAPButton(interaction: ButtonInteraction) {
             interaction.editReply({ content: message })
 
             if (!actionResponse.success) {
+                console.log('--- action not successful ---', actionResponse.action);
                 return;
             }
 
             if (logActions.includes(actionResponse.action)) {
                 BotTaskService.addTask({
-                    fn: () => logAction(interaction.client, actionResponse),
+                    fn: () => Bot.logAction(interaction.client, actionResponse),
                     priority: 'high',
                     name: `log action ${interaction.user.id}-${interaction.customId}`,
                 })
@@ -227,17 +230,17 @@ async function handleAPButton(interaction: ButtonInteraction) {
 
             if (actionResponse.action == 'attack' && actionResponse.data?.target.health == 0) {
                 BotTaskService.addTask({
-                    fn: () => logAction(interaction.client, {
+                    fn: () => Bot.logAction(interaction.client, {
                         player: actionResponse.data.target,
                         action: 'death',
                         success: true,
                     }),
                     priority: 'high',
                     name: `log death action ${interaction.user.id}-${interaction.customId}`,
-                });
+                }).subscribe(() => {});
 
                 BotTaskService.addTask({
-                    fn: () => killPlayerEvents(interaction.guild, actionResponse.player, actionResponse.data.target),
+                    fn: () => Bot.killPlayerEvents(interaction.guild, actionResponse.player, actionResponse.data.target),
                     priority: 'high',
                     name: `kill player ${interaction.user.id}-${interaction.customId}`,
                     dataBaseFn: async () => {
@@ -249,7 +252,7 @@ async function handleAPButton(interaction: ButtonInteraction) {
 
             if (actionResponse.player) {
                 BotTaskService.addTask({
-                    fn: () => updateSecretPlayerChannel(interaction.guild, actionResponse.player),
+                    fn: () => Bot.updateSecretPlayerChannel(interaction.guild, actionResponse.player),
                     priority: 'high',
                     name: `update secret channel ${interaction.user.id} ${interaction.customId}`,
                 })
@@ -257,7 +260,7 @@ async function handleAPButton(interaction: ButtonInteraction) {
 
             if (actionResponse.data?.target) {
                 BotTaskService.addTask({
-                    fn: () => updateSecretPlayerChannel(interaction.guild, actionResponse.data.target),
+                    fn: () => Bot.updateSecretPlayerChannel(interaction.guild, actionResponse.data.target),
                     priority: 'high',
                     name: `update secret channel ${interaction.user.id}-${interaction.customId}`,
                 }).subscribe(() => {
@@ -266,17 +269,57 @@ async function handleAPButton(interaction: ButtonInteraction) {
             }
 
             if (updateAllChannelActions.includes(actionResponse.action)) {
-                BotTaskService.addTask({
-                    fn: () => updateAllSecretPlayerChannels(interaction.guild),
-                    priority: 'low',
-                    name: `update all secret channels`,
-                    taskId: `update-all-secret-channels`
-                })
+                BotTaskService.addCommonTask('update-all-secret-channels', interaction.guild).subscribe(() => {});
+            }
+            if (updateBoardChannelActions.includes(actionResponse.action)) {
+                BotTaskService.addCommonTask('update-board-channel', interaction.guild).subscribe(() => {});
             }
         },
         error: async (err) => {
             console.error(err);
             interaction.editReply({ content: `Sorry ${interaction.user}, something went wrong while processing your request.` });
+        }
+    });
+}
+
+async function seePlayerBoard(interaction: ChatInputCommandInteraction) {
+    await interaction.deferReply();
+
+    BotTaskService.addTask({
+        name: `see-player-board-${interaction.user.id}-${interaction.channelId}`,
+        priority: 'low',
+        fn: () => {
+            return new Observable<void>(sub => {
+                
+                getById<Player>('player', interaction.guild, interaction.user.id).then(async commandUser => {
+                    let buttons = [];
+                    if (commandUser.secretChannelId == interaction.channelId || commandUser.notifcationChannelId == interaction.channelId) {
+                        buttons.push(getDeleteMeButton());
+                    }
+
+                    let user = interaction.options.get('player').user;
+                    getById<Player>('player', interaction.guild, user.id).then(player => {
+                        if (player == null) {
+                            interaction.editReply({ content: 'Player not found', components: buttons.length > 0 ? [{type: 1, components: buttons}] : null });
+                            sub.next();
+                            sub.complete();
+                            return;
+                        }
+
+                        BoardModule.drawBoardCanvas(interaction.guild, {
+                            player: player
+                        }).subscribe(board => {
+                            interaction.editReply({ files: [board], components: buttons.length > 0 ? [{type: 1, components: buttons}] : null }).then(() => {
+                                sub.next();
+                                sub.complete();
+                            });
+                        });
+
+                    });
+                });
+
+
+            });
         }
     });
 }
@@ -316,7 +359,7 @@ function openMovePanel(interaction: ButtonInteraction) {
 
 function openAttackPanel(interaction: ButtonInteraction) {
     return new Observable<void>(sub => {
-        getById('player', interaction.guild, interaction.user.id).then(dbObj => {
+        getById<Player>('player', interaction.guild, interaction.user.id).then(dbObj => {
             let player = dbObj as Player;
             getInRangePlayers(player, interaction.guild).then(resp => {
                 let inRangePlayers = resp.inRange;
@@ -370,7 +413,7 @@ function openAttackPanel(interaction: ButtonInteraction) {
 
 function openSendApPanel(interaction: ButtonInteraction) {
     return new Observable<void>(sub => {
-        getById('player', interaction.guild, interaction.user.id).then(dbObj => {
+        getById<Player>('player', interaction.guild, interaction.user.id).then(dbObj => {
             let player = dbObj as Player;
             getInRangePlayers(player, interaction.guild).then(async resp => {
                 let inRangePlayers = resp.inRange;
@@ -396,7 +439,7 @@ function openSendApPanel(interaction: ButtonInteraction) {
                         buttonGroups.push(buttons.splice(0, 5));
                     }
             
-                    let message = `Select a player to send an AP'`;
+                    let message = `Select a player to send 1 AP`;
                     if (buttonGroups.length == 0) {
                         await interaction.editReply({ content: message, components: [{type: 1, components: buttonGroups[0]}] });
                     }
@@ -462,5 +505,6 @@ function confirmPanel(interaction: ButtonInteraction, action: 'upgradeRange' | '
 export const BotInteractionService = {
     doBotInteraction,
     sendMessageToChannel,
-    handleAPButton
+    handleAPButton,
+    seePlayerBoard
 }

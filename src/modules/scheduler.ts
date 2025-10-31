@@ -1,20 +1,23 @@
 import { Guild, TextChannel } from 'discord.js';
 import { scheduleJob } from 'node-schedule';
 import { givePlayersActionPoints } from './game';
-import { updateAllSecretPlayerChannels } from './bot';
+import { Bot } from './bot';
 import { getAll, getById, set, truncate } from './database';
 import { Settings } from '../interfaces/settings.interface';
 import { Player } from '../interfaces/player.interface';
-import { closeJury, finalizeJuryVote } from './jury';
+import { Jury } from './jury';
 import { queueService } from './queue-service';
 import { queryObjects } from 'v8';
+import { BotTaskService } from './bot-task-service';
+import { Observable } from 'rxjs';
+import { BotInteractionService } from './bot-interaction.service';
 
 type ScheduledJob = 'distributeApJob' | 'juryOpenJob';
 
 const jobMap: Map<ScheduledJob, scheduleJob> = new Map()
 
 async function initScheduledJobs(guild: Guild) {
-    let settings = await getById('settings', guild, '1') as Settings;
+    let settings = await getById<Settings>('settings', guild, '1') as Settings;
 
     if (!settings) {
         throw new Error(`Settings not found - ${guild.id}`);
@@ -33,12 +36,13 @@ async function scheduleServerJob(job: ScheduledJob, cronTime: string, guild: Gui
         jobCallback.cancel(); // Cancel the existing job if it exists
     }
 
+    console.log(`Scheduling job ${job} with cron time ${cronTime}`);
+
     switch (job) {
         case 'distributeApJob':
             jobCallback = distributeApJob.bind(this, guild);
             break;
         case 'juryOpenJob':
-            console.log(`Scheduling job ${job} with cron time ${cronTime}`);
             jobCallback = juryOpenJob.bind(this, guild);;
             break;
         default:
@@ -49,30 +53,30 @@ async function scheduleServerJob(job: ScheduledJob, cronTime: string, guild: Gui
 }
 
 async function distributeApJob(guild: Guild) {
-    queueService.addHighPriority(async () => { await finalizeJuryVote(guild) });
-    queueService.addHighPriority(async () => { await closeJury(guild) });
-    queueService.addToQueue(async () => { await givePlayersActionPoints(guild) });
-    queueService.addLowPriority(async () => { await updateAllSecretPlayerChannels(guild) });
-    
 
-    // close the jury vote if it is open
-    let settings = await getById('settings', guild, '1') as Settings;
-    if (settings.juryOpen) {
-        settings.juryOpen = false;
-        await set('settings', guild, settings);
-    }
+    await givePlayersActionPoints(guild);
+
+    getAll<Player>('player', guild).then(async playersMap => {
+        let players = Array.from(playersMap.values()).filter(p => p.health > 0);
+        if (players.length >= 3) {
+            await Jury.finalizeJuryVote(guild);
+            await Jury.closeJury(guild);
+        }
+        BotTaskService.addCommonTask('update-all-secret-channels', guild).subscribe(() => {});
+    });
+    
 }
 
 async function juryOpenJob(guild: Guild) {
-    let players = await getAll('player', guild) as Map<string, Player>;
-    let deadPlayers = Array.from(players.values()).filter(p => p.health <= 0);
-    await truncate('jury-vote', guild);
+    // let players = await getAll('player', guild) as Map<string, Player>;
+    // let deadPlayers = Array.from(players.values()).filter(p => p.health <= 0);
+    // await truncate('jury-vote', guild);
 
-    if (deadPlayers.length < 3) {
-        return;
-    }
+    // if (deadPlayers.length < 3) {
+    //     return;
+    // }
 
-    let settings = await getById('settings', guild, '1') as Settings;
+    let settings = await getById<Settings>('settings', guild, '1') as Settings;
     settings.juryOpen = true;
     await set('settings', guild, settings);
     
