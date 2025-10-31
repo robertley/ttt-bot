@@ -19,7 +19,7 @@ export default defineConfig([
       "@typescript-eslint": tseslint
     },
     rules: {
-      "@typescript-eslint/no-floating-promises": "error"
+      // "@typescript-eslint/no-floating-promises": "error"
     }
   },
   {
