@@ -356,12 +356,12 @@ async function newSecretChannelCategory(guild: Guild): Promise<CategoryChannel> 
     return category;
 }
 
-async function addUserToSecretChannel(interaction: ChatInputCommandInteraction, user: User): Promise<void> {
-    console.log('Adding user to secret channel');
+async function addUserToSecretChannel(interaction: ChatInputCommandInteraction, user: User): Promise<boolean> {
     let channel = interaction.channel as TextChannel;
-    if (channel.parent.id != process.env.SECRET_CATEGORY_ID && channel.parent.id != process.env.SECRET_CATEGORY_ID_2) {
+    let secretCategoryIds = await getAll<SecretChannelCategory>('secret-channel-category', interaction.guild) as Map<string, SecretChannelCategory>;
+    if (secretCategoryIds.has(channel.parentId) == false) {
         await interaction.editReply({ content: 'This is not a secret channel' });
-        return;
+        return false;
     }
     await channel.permissionOverwrites.edit(
         user,
@@ -373,12 +373,13 @@ async function addUserToSecretChannel(interaction: ChatInputCommandInteraction, 
     let invitee = await getById<Player>('player', interaction.guild, user.id);
     let player = await getById<Player>('player', interaction.guild, interaction.user.id);
     await sendPlayerNotification(interaction.guild, invitee, `<@${player.id}> has added you to the secret channel ${channel.name}`);
-    return;
+    return true;
 }
 
 async function removeUserFromSecretChannel(interaction: ChatInputCommandInteraction, user: User): Promise<void> {
     let channel = interaction.channel as TextChannel;
-    if (channel.parent.id != process.env.SECRET_CATEGORY_ID && channel.parent.id != process.env.SECRET_CATEGORY_ID_2) {
+    let secretCategoryIds = await getAll<SecretChannelCategory>('secret-channel-category', interaction.guild) as Map<string, SecretChannelCategory>;
+    if (secretCategoryIds.has(channel.parentId) == false) {
         await interaction.editReply({ content: 'This is not a secret channel' });
         return;
     }

@@ -26,6 +26,9 @@ module.exports = {
 
         try {
             let resp = await Bot.addUserToSecretChannel(interaction, interaction.options.get('player').user);
+            if (resp == false) {
+                return;
+            }
         } catch (e) {
             console.error(e);
             await interaction.editReply({ content: "This is not a secret group channel" });
