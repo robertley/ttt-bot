@@ -153,9 +153,18 @@ function updateBoardChannel(guild: Guild): Observable<void> {
                         messageArray[0].edit({ files: files, embeds: embeds});
                         sub.next();
                         sub.complete();
+                    }).catch((error) => {
+                        sub.error(error)
+                        sub.complete()
                     });
+                }).catch((error) => {
+                    sub.error(error)
+                    sub.complete()
                 });
             });
+        }).catch((error) => {
+            sub.error(error)
+            sub.complete()
         });
     })
     
@@ -228,6 +237,9 @@ function logAction(client: Client, action: ActionResponse): Observable<void> {
                 channel.send({ content: actionMessage, files: [board] }).then(() => {
                     sub.next();
                     sub.complete();
+                }).catch((error) => {
+                    sub.error(error)
+                    sub.complete()
                 });
             });
         }
@@ -239,6 +251,9 @@ function logAction(client: Client, action: ActionResponse): Observable<void> {
                 channel.send({ content: actionMessage, files: [board] }).then(() => {
                     sub.next();
                     sub.complete();
+                }).catch((error) => {
+                    sub.error(error)
+                    sub.complete()
                 });
             });
         }
@@ -246,6 +261,9 @@ function logAction(client: Client, action: ActionResponse): Observable<void> {
             channel.send({ content: actionMessage  }).then(() => {
                 sub.next();
                 sub.complete();
+            }).catch((error) => {
+                sub.error(error)
+                sub.complete()
             });
         }
 
@@ -420,6 +438,9 @@ function updateSecretPlayerChannel(guild: Guild, player: Player): Observable<Tex
                                     sub.next(channel);
                                     sub.complete();
                                 });
+                            }).catch((error) => {
+                                sub.error(error)
+                                sub.complete()
                             });
                             return;
                         }
@@ -429,10 +450,16 @@ function updateSecretPlayerChannel(guild: Guild, player: Player): Observable<Tex
 
                         sub.next(channel);
                         sub.complete();
+                    }).catch((error) => {
+                        sub.error(error)
+                        sub.complete()
                     });
                     
                 });
             }
+        }).catch((error) => {
+            sub.error(error)
+            sub.complete()
         });
     });
 }
@@ -479,6 +506,9 @@ function addPlayerControlButtons(guild: Guild, player: Player): Observable<void>
         channel.send({ content: 'Actions', components: [{type: 1, components: [moveButton, attackButton, sendAPButton, upgradeRangeButton, healButton]}]}).then(() => {
             sub.next();
             sub.complete();
+        }).catch((error) => {
+            sub.error(error)
+            sub.complete()
         });
     });
 }
@@ -508,6 +538,9 @@ function updateAllSecretPlayerChannels(guild: Guild): Observable<void> {
                     }
                 });
             }
+        }).catch((error) => {
+            sub.error(error)
+            sub.complete()
         });
 
     });
@@ -627,7 +660,13 @@ function resetSecretPlayerChannel(player: Player, guild: Guild): Observable<void
                                 sub.next(null);
                                 sub.complete();
                             });
+                        }).catch((error) => {
+                            sub.error(error)
+                            sub.complete()
                         });
+                    }).catch((error) => {
+                        sub.error(error)
+                        sub.complete()
                     });
                     
                 });
@@ -637,6 +676,17 @@ function resetSecretPlayerChannel(player: Player, guild: Guild): Observable<void
             resetSub.complete();
         });
     })
+}
+
+function sendErrorMessage(guild: Guild, type: 'action button', errorMessage: string, options?: { [key: string]: any }): Promise<void> {
+    let channel = guild.channels.cache.get(process.env.ERROR_LOG_CHANNEL_ID) as TextChannel;
+    let message = `Error Type: ${type}\nError Message: ${errorMessage}`;
+    if (options) {
+        message += `\nOptions: ${JSON.stringify(options)}`;
+    }
+    return channel.send({content: message}).then(() => {
+        return;
+    });
 }
 
 export const Bot = {
@@ -653,5 +703,6 @@ export const Bot = {
     updateSettingsChannel,
     updateSetting,
     messageInteractionReply,
-    resetSecretPlayerChannel
+    resetSecretPlayerChannel,
+    sendErrorMessage
 };

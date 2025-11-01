@@ -113,7 +113,21 @@ async function handleAPButton(interaction: ButtonInteraction) {
             fn: () => actionObservable,
             priority: 'low',
             name: `ap-button-${interaction.user.id}-${interaction.customId}`
-        });
+        }).subscribe(
+            {
+                next: () => {},
+                error: async (err) => {
+                    console.error(err);
+                    interaction.editReply({ content: `Something went wrong. Bert has been notified.` });
+                    Bot.sendErrorMessage(interaction.guild, "action button", `Error processing AP button interaction: ${err}`, {
+                        action: action,
+                        actionSecondary: actionSecondary,
+                        userId: interaction.user.id,
+                        interactionId: interaction.id
+                    });
+                }
+            }
+        )
 
         return;
     }
@@ -220,7 +234,7 @@ async function handleAPButton(interaction: ButtonInteraction) {
                         let target = actionResponse.data.target;
                         let channelId = target.notifcationChannelId;
                         let channel = interaction.guild.channels.cache.get(channelId) as TextChannel;
-                        channel?.send({content: `<@${target.id}> You have been given 1 AP by <@${user.id}>`, components: [{type: 1, components: [getDeleteMeButton()]}]});
+                        channel?.send({content: `<@${target.id}> You have been given 1 AP by <@${user.id}>`, components: []});//[{type: 1, components: [getDeleteMeButton()]}]});
                         sub.next();
                     }),
                     priority: 'high',
@@ -277,7 +291,13 @@ async function handleAPButton(interaction: ButtonInteraction) {
         },
         error: async (err) => {
             console.error(err);
-            interaction.editReply({ content: `Sorry ${interaction.user}, something went wrong while processing your request.` });
+            interaction.editReply({ content: `Something went wrong. Bert has been notified.` });
+            Bot.sendErrorMessage(interaction.guild, "action button", `Error processing AP button interaction: ${err}`, {
+                action: action,
+                actionSecondary: actionSecondary,
+                userId: interaction.user.id,
+                interactionId: interaction.id
+            });
         }
     });
 }
@@ -315,7 +335,13 @@ async function seePlayerBoard(interaction: ChatInputCommandInteraction) {
                             });
                         });
 
+                    }).catch((error) => {
+                        sub.error(error)
+                        sub.complete()
                     });
+                }).catch((error) => {
+                    sub.error(error)
+                    sub.complete()
                 });
 
 
@@ -404,8 +430,14 @@ function openAttackPanel(interaction: ButtonInteraction) {
 
                 sub.next();
                 sub.complete();
+            }).catch((error) => {
+                sub.error(error)
+                sub.complete()
             });
-        })
+        }).catch((error) => {
+            sub.error(error)
+            sub.complete()
+        });
     });
     
 }
@@ -481,8 +513,14 @@ function openSendApPanel(interaction: ButtonInteraction) {
 
                 sub.next();
                 sub.complete();
-            })
-        })
+            }).catch((error) => {
+                sub.error(error)
+                sub.complete()
+            });
+        }).catch((error) => {
+            sub.error(error)
+            sub.complete()
+        });
     });
     
 }

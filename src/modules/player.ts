@@ -121,8 +121,8 @@ function move(user: User, direction: 'up' | 'down' | 'left' | 'right', guild: Gu
                 
                 if (player.actionPoints < 1) {
                     action.success = false;
-                    action.error = 'no energy';
-                    action.message = 'You do not have enough energy to move';
+                    action.error = 'no AP';
+                    action.message = 'You do not have enough AP to move';
                     sub.next(action);
                     return;
                 }
@@ -181,7 +181,13 @@ function move(user: User, direction: 'up' | 'down' | 'left' | 'right', guild: Gu
                 action.success = true;
                 sub.next(action);
                 sub.complete();
+            }).catch((error) => {
+                sub.error(error);
+                sub.complete();
             });
+        }).catch((error) => {
+            sub.error(error);
+            sub.complete();
         });
     });
 }
@@ -223,8 +229,8 @@ function attack(user: User, target: User, guild: Guild): Observable<ActionRespon
             
                 if (player.actionPoints < 1) {
                     action.success = false;
-                    action.error = 'no energy';
-                    action.message = 'You do not have enough energy to attack';
+                    action.error = 'no AP';
+                    action.message = 'You do not have enough AP to attack';
                     sub.next(action);
                     return;
                 }
@@ -252,9 +258,18 @@ function attack(user: User, target: User, guild: Guild): Observable<ActionRespon
                     player.actionPoints--;
 
                     sub.next(action);
+                }).catch((error) => {
+                    sub.error(error)
+                    sub.complete()
                 });
             
+            }).catch((error) => {
+                sub.error(error)
+                sub.complete()
             });
+        }).catch((error) => {
+            sub.error(error)
+            sub.complete()
         });
     });
 }
@@ -318,8 +333,8 @@ function giveAP(user: User, target: User, guild: Guild): Observable<ActionRespon
             
                 if (player.actionPoints < 1) {
                     action.success = false;
-                    action.error = 'no energy';
-                    action.message = 'You do not have enough energy to give AP';
+                    action.error = 'no AP';
+                    action.message = 'You do not have enough AP to send AP';
                     sub.next(action);
                     return;
                 }
@@ -368,8 +383,17 @@ function giveAP(user: User, target: User, guild: Guild): Observable<ActionRespon
                     player.actionPoints--;
                 
                     sub.next(action);
+                }).catch((error) => {
+                    sub.error(error)
+                    sub.complete()
                 });
+            }).catch((error) => {
+                sub.error(error)
+                sub.complete()
             });
+        }).catch((error) => {
+            sub.error(error)
+            sub.complete()
         });
     });
 }
@@ -422,8 +446,8 @@ function giveAPFar(user: User, target: User, guild: Guild): Observable<ActionRes
             
                 if (player.actionPoints < cost) {
                     action.success = false;
-                    action.error = 'no energy';
-                    action.message = 'You do not have enough AP';
+                    action.error = 'no AP';
+                    action.message = 'You do not have enough AP to send AP out of range';
                     sub.next(action);
                     return;
                 }
@@ -473,8 +497,17 @@ function giveAPFar(user: User, target: User, guild: Guild): Observable<ActionRes
                     player.sentLongRangeAp = true;
                 
                     sub.next(action);
+                }).catch((error) => {
+                    sub.error(error)
+                    sub.complete()
                 });
+            }).catch((error) => {
+                sub.error(error)
+                sub.complete()
             });
+        }).catch((error) => {
+            sub.error(error)
+            sub.complete()
         });
     });
 }
@@ -504,12 +537,21 @@ function death(player: Player, client: Client): Observable<void> {
                             sub.next(null);
                             sub.complete();
                         });
+                    }).catch((error) => {
+                        sub.error(error)
+                        sub.complete()
                     });
-
+                }).catch((error) => {
+                    sub.error(error)
+                    sub.complete()
                 });
+            }).catch((error) => {
+                sub.error(error)
+                sub.complete()
             });
-
-        
+        }).catch((error) => {
+            sub.error(error)
+            sub.complete()
         });
     });
 }
@@ -556,8 +598,8 @@ function upgradeRange(user: User, guild: Guild): Observable<ActionResponse> {
             if (player.actionPoints < 3) {
                 sub.next({
                     success: false,
-                    error: 'no energy',
-                    message: 'You do not have enough energy to upgrade range',
+                    error: 'no AP',
+                    message: 'You do not have enough AP to upgrade range',
                     player: player,
                     action: 'range-upgrade',
                     data: null
@@ -574,6 +616,9 @@ function upgradeRange(user: User, guild: Guild): Observable<ActionResponse> {
                 action: 'range-upgrade',
                 data: null
             });
+        }).catch((error) => {
+            sub.error(error)
+            sub.complete()
         });
     });
 }
@@ -601,8 +646,8 @@ function addHeart(user: User, guild: Guild): Observable<ActionResponse> {
             if (player.actionPoints < 3) {
                 sub.next({
                     success: false,
-                    error: 'no energy',
-                    message: 'You do not have enough energy to add a heart',
+                    error: 'no AP',
+                    message: 'You do not have enough AP to add a heart',
                     player: player,
                     action: 'heal',
                     data: null
@@ -620,6 +665,9 @@ function addHeart(user: User, guild: Guild): Observable<ActionResponse> {
                 action: 'heal',
                 data: null
             });
+        }).catch((error) => {
+            sub.error(error)
+            sub.complete()
         });
     });
 }

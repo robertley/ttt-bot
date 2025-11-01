@@ -157,6 +157,9 @@ function addPlayerToJury(guild: Guild, player: Player): Observable<void> {
                 });
 
             });
+        }).catch((error) => {
+            sub.error(error)
+            sub.complete()
         });
 
     });
@@ -180,6 +183,9 @@ function getJuryVotesRequired(guild: Guild): Observable<number> {
             }
             sub.next(amt);
             sub.complete();
+        }).catch((error) => {
+            sub.error(error)
+            sub.complete()
         });
     });
 }
@@ -197,6 +203,9 @@ function getVoteCount(guild: Guild): Observable<{votes: number, votesRequired: n
                 sub.next({ votes: count, votesRequired: votesRequired });
                 sub.complete();
             });
+        }).catch((error) => {
+            sub.error(error)
+            sub.complete()
         });
     });
 }
