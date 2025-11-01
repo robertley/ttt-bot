@@ -143,10 +143,12 @@ function processTasks() {
             console.error(`Task ${task.name} failed:`, err);
             let subj = taskSubjMap.get(task.date);
             subj.error(err);
+            subj.complete();
             currentTask = null;
             processTasks();
         }
     });
+    
 }
 
 function addCommonTask(task: 'update-all-secret-channels' | 'update-board-channel', guild: Guild): Observable<AddTaskResult<any>> {

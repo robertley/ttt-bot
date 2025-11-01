@@ -52,7 +52,13 @@ function drawBoard(guild: Guild): Observable<string> {
                 }
             
                 sub.next(boardString);
+            }).catch((error) => {
+                sub.error(error)
+                sub.complete()
             });
+        }).catch((error) => {
+            sub.error(error)
+            sub.complete()
         });
     });
 
@@ -104,7 +110,13 @@ function drawPlayerBoard(guild: Guild, player: Player): Observable<string> {
                 }
 
                 sub.next(boardString);
+            }).catch((error) => {
+                sub.error(error)
+                sub.complete()
             });
+        }).catch((error) => {
+            sub.error(error)
+            sub.complete()
         });
     });
 }
@@ -333,8 +345,14 @@ function drawBoardCanvas(guild: Guild, opts?: {
                     sub.next(canvas.toBuffer());
                     sub.complete();
                 });
+            }).catch((error) => {
+                sub.error(error)
+                sub.complete()
             });
-        })
+        }).catch((error) => {
+            sub.error(error)
+            sub.complete()
+        });
     });
     
     // // Wait for all images to load
