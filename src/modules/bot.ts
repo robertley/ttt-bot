@@ -390,7 +390,7 @@ async function addUserToSecretChannel(interaction: ChatInputCommandInteraction, 
 
     let invitee = await getById<Player>('player', interaction.guild, user.id);
     let player = await getById<Player>('player', interaction.guild, interaction.user.id);
-    await sendPlayerNotification(interaction.guild, invitee, `<@${player.id}> has added you to the secret channel ${channel.name}`);
+    await sendPlayerNotification(interaction.guild, invitee, `<@${user.id}> <@${player.id}> has added you to the secret channel ${channel.name}`);
     return true;
 }
 
