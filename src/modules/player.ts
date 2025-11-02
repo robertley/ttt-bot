@@ -30,7 +30,7 @@ async function createNewPlayer(user: User, guild: Guild, emoji, fake: boolean = 
         displayName: fake ? fakeName : user.displayName,
         actionPoints: DEV ? 100 : 0,
         health: 3,
-        range: DEV ? 5 : 1,
+        range: DEV ? 5 : 2,
         emoji: emoji,
         secretChannelId: null,
         notifcationChannelId: null,
