@@ -191,7 +191,7 @@ async function handleAPButton(interaction: ButtonInteraction) {
             const cooldownActions = ['move', 'attack', 'range-upgrade', 'heal'];
             const noCooldownActions = ['give-ap', 'give-ap-far'];
             const updateAllChannelActions = ['move'];
-            const updateBoardChannelActions = ['move', 'heal'];
+            const updateBoardChannelActions = ['move', 'heal', 'range-upgrade'];
 
             let actionResponse = result.resp as ActionResponse;
 
