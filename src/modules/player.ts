@@ -643,7 +643,7 @@ function addHeart(user: User, guild: Guild): Observable<ActionResponse> {
                 });
                 return;
             }
-            if (player.actionPoints < 3) {
+            if (player.actionPoints < 2) {
                 sub.next({
                     success: false,
                     error: 'no AP',
