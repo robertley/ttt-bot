@@ -81,7 +81,7 @@ async function finalizeJuryVote(guild: Guild): Promise<ActionResponse> {
     let voteCount = countVotes(votes);
     let winners = [];
     let winnerCount = 0;
-    let votesRequired = 1 // await getJuryVotesRequired(guild).toPromise();
+    let votesRequired = await getJuryVotesRequired(guild).toPromise();
     for (let [playerId, count] of voteCount) {
         if (count >= votesRequired) {
             winners.push(playerId);
@@ -101,7 +101,6 @@ async function finalizeJuryVote(guild: Guild): Promise<ActionResponse> {
         winner.actionPoints++;
         response.data.winners.push(winner);
         await set('player', guild, winner);
-        // queueService.addLowPriority(async () => await Bot.updateSecretPlayerChannel(guild, winner))
     }
 
     await set('jury-vote-backup', guild, Array.from(votes.values()));

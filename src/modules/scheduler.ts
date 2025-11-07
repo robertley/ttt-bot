@@ -57,8 +57,8 @@ async function distributeApJob(guild: Guild) {
     await givePlayersActionPoints(guild);
 
     getAll<Player>('player', guild).then(async playersMap => {
-        let players = Array.from(playersMap.values()).filter(p => p.health > 0);
-        if (players.length >= 3) {
+        let jurors = Array.from(playersMap.values()).filter(p => p.health == 0);
+        if (jurors.length >= 3) {
             await Jury.finalizeJuryVote(guild);
             await Jury.closeJury(guild);
         }
