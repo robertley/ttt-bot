@@ -654,6 +654,17 @@ function addHeart(user: User, guild: Guild): Observable<ActionResponse> {
                 });
                 return;
             }
+            if (player.health >= 5) {
+                sub.next({
+                    success: false,
+                    error: 'max hearts',
+                    message: 'You are already at the maximum number of hearts (5)',
+                    player: player,
+                    action: 'heal',
+                    data: null
+                });
+                return;
+            }
             player.health++;
             player.actionPoints -= 2;
             // await set('player', guild, player);

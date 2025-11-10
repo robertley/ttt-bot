@@ -5,7 +5,7 @@ export interface ActionResponse {
     success: boolean;
     action: 'move' | 'attack' | 'heal' | 'death' | 'scheduled-ap' | 'range-upgrade' | 'give-ap' | 'give-ap-far' | 'new-game' | 'jury-vote' | 'jury-fail';
     data?: (MoveData | AttackData | JuryData) & { target?: Player };
-    error?: 'no AP' | 'invalid',
+    error?: 'no AP' | 'invalid' | 'max hearts',
     message?: string;
     player?: Player;
     board?: Board;
