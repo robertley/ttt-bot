@@ -14,8 +14,8 @@ module.exports = {
         let botInteraction: BotInteraction<{votes: number, votesRequired: number, success: boolean}> = {
             interaction: interaction,
             task: {
-                fn: () =>
-                    new Observable<{votes: number, votesRequired: number, success: boolean}>((sub) => {
+                fn: () => {
+                    return new Observable<{votes: number, votesRequired: number, success: boolean}>((sub) => {
                         let hasRole = false;
                         (interaction.member as GuildMember).roles.cache.forEach(role => {
                             if (role.id == process.env.JURY_ROLE_ID) {
@@ -25,15 +25,17 @@ module.exports = {
                         });
 
                         if (!hasRole) {
-                            sub.next({ votes: 0, votesRequired: 0, success: false });
+                            sub.next({ votes: 0, votesRequired: 0, success: true });
                             sub.complete();
                             return;
                         }
 
                         Jury.getVoteCount(interaction.guild).subscribe((resp) => {
                             sub.next({ votes: resp.votes, votesRequired: resp.votesRequired, success: true });
+                            sub.complete();
                         });
-                    }),
+                    })
+                },
                 name: 'Jury Vote',
                 priority: 'low'
             },
@@ -45,6 +47,6 @@ module.exports = {
             }
         };
 
-        BotInteractionService.doBotInteraction(botInteraction);
+        await BotInteractionService.doBotInteraction(botInteraction);
     }
 }

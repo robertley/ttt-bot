@@ -80,12 +80,10 @@ async function finalizeJuryVote(guild: Guild): Promise<ActionResponse> {
     let votes = await getAll('jury-vote', guild) as Map<string, JuryVote>;
     let voteCount = countVotes(votes);
     let winners = [];
-    let winnerCount = 0;
     let votesRequired = await getJuryVotesRequired(guild).toPromise();
     for (let [playerId, count] of voteCount) {
         if (count >= votesRequired) {
             winners.push(playerId);
-            winnerCount++;
         }
     }
 
@@ -120,9 +118,9 @@ async function closeJury(guild: Guild): Promise<void> {
 
 function countVotes(votes: Map<string, JuryVote>): Map<string, number> {
     let voteCount = new Map<string, number>();
-    votes.forEach((vote) => {
+    for (let vote of votes.values()) {
         if (vote.vote == 'remove-vote') {
-            return;
+            continue;
         }
         let count = voteCount.get(vote.vote);
         if (count == null) {
@@ -130,7 +128,7 @@ function countVotes(votes: Map<string, JuryVote>): Map<string, number> {
         }
         count++;
         voteCount.set(vote.vote, count);
-    });
+    }
     return voteCount;
 }
 
@@ -166,16 +164,19 @@ function addPlayerToJury(guild: Guild, player: Player): Observable<void> {
 
 function getJuryVotesRequired(guild: Guild): Observable<number> {
     return new Observable<number>(sub => {
-        getById<Settings>('settings', guild, '1').then(settings => {
-            let juryMembers = guild.roles.cache.get(process.env.JURY_ROLE_ID).members;
+        getById<Settings>('settings', guild, '1').then(async settings => {
+            let players = await getAll<Player>('player', guild);
+            let juryMembers = Array.from(players.values()).filter(player => {
+                return player.health < 1;
+            });
             let amt = null;
-            if (juryMembers.size < settings.juryMin3Votes) {
+            if (juryMembers.length < settings.juryMin3Votes) {
                 amt = null;
             }
-            else if (juryMembers.size < settings.juryMin4Votes) {
+            else if (juryMembers.length < settings.juryMin4Votes) {
                 amt = 3;
             }
-            else if (juryMembers.size < settings.juryMin5Votes) {
+            else if (juryMembers.length < settings.juryMin5Votes) {
                 amt = 4;
             } else {
                 amt = 5;
