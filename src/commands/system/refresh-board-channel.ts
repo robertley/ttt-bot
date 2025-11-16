@@ -8,8 +8,8 @@ module.exports = {
         .setDescription('Refresh the board channel'),
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.deferReply();
-        await Bot.updateBoardChannel(interaction.guild);
-        await Bot.updateAllSecretPlayerChannels(interaction.guild);
+        await Bot.updateBoardChannel(interaction.guild).toPromise();
+        // await Bot.updateAllSecretPlayerChannels(interaction.guild);
         await interaction.editReply('Board Channel Refreshed');
     },
 }

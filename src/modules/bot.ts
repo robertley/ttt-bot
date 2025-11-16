@@ -123,7 +123,8 @@ function updateBoardChannel(guild: Guild): Observable<void> {
                             } else {
                                 placeString = `${place}th`;
                             }
-                            deadStrings.push(`${placeString} | ${player.displayName} ${player.emoji}\n`);
+                            // deadStrings.push(`${placeString} | ${player.displayName} ${player.emoji}\n`);
+                            deadStrings.push(`last | ${player.displayName} ${player.emoji}\n`);
                         }
                         deadStrings.reverse();
                         deadString += deadStrings.join('');
