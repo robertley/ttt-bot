@@ -7,7 +7,9 @@ module.exports = {
         .setDescription('Set a game setting')
         .addStringOption(option => option.setName('key').setDescription('Setting key to set').setRequired(true).setChoices([
             { name: 'apScheduleCron', value: 'apScheduleCron' },
+            { name: 'apScheduleCron2', value: 'apScheduleCron2' },
             { name: 'juryOpenScheduleCron', value: 'juryOpenScheduleCron' },
+            { name: 'juryOpenScheduleCron2', value: 'juryOpenScheduleCron2' },
             { name: 'juryMin3Votes', value: 'juryMin3Votes' },
             { name: 'juryMin4Votes', value: 'juryMin4Votes' },
             { name: 'juryMin5Votes', value: 'juryMin5Votes' },

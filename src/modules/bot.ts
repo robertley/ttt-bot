@@ -591,8 +591,8 @@ async function updateSetting(guild: Guild, key: string, value: string): Promise<
     await set('settings', guild, settings);
     await updateSettingsChannel(guild);
 
-    if (key == 'apScheduleCron' || key == 'juryOpenScheduleCron') {
-        let job: ScheduledJob = key == 'apScheduleCron' ? 'distributeApJob' : 'juryOpenJob';
+    if (key == 'apScheduleCron' || key == 'juryOpenScheduleCron' || key == 'apScheduleCron2' || key == 'juryOpenScheduleCron2') {
+        let job: ScheduledJob = (key == 'apScheduleCron' || key == 'apScheduleCron2') ? 'distributeApJob' : 'juryOpenJob';
 
         await scheduleServerJob(job, value, guild);
     }

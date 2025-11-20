@@ -25,9 +25,17 @@ async function initScheduledJobs(guild: Guild) {
 
     const apScheduleCron = settings.apScheduleCron;
     const juryOpenScheduleCron = settings.juryOpenScheduleCron;
+    const apScheduleCron2 = settings.apScheduleCron2;
+    const juryOpenScheduleCron2 = settings.juryOpenScheduleCron2;
 
     await scheduleServerJob('distributeApJob', apScheduleCron, guild);
+    if (apScheduleCron2 != null) {
+        await scheduleServerJob('distributeApJob', apScheduleCron2, guild);
+    }
     await scheduleServerJob('juryOpenJob', juryOpenScheduleCron, guild);
+    if (juryOpenScheduleCron2 != null) {
+        await scheduleServerJob('juryOpenJob', juryOpenScheduleCron2, guild);
+    }
 }
 
 async function scheduleServerJob(job: ScheduledJob, cronTime: string, guild: Guild) {

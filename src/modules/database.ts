@@ -102,6 +102,8 @@ async function initFiles(guild: Guild) {
             id: '1',
             apScheduleCron: '0 12 * * *',
             juryOpenScheduleCron: '0 14 * * *',
+            apScheduleCron2: null,
+            juryOpenScheduleCron2: null,
             juryOpen: false,
             juryMin3Votes: 3,
             juryMin4Votes: 9,
