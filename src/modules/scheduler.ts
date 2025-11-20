@@ -12,7 +12,7 @@ import { BotTaskService } from './bot-task-service';
 import { Observable } from 'rxjs';
 import { BotInteractionService } from './bot-interaction.service';
 
-type ScheduledJob = 'distributeApJob' | 'juryOpenJob';
+type ScheduledJob = 'distributeApJob' | 'juryOpenJob' | 'distributeApJob2' | 'juryOpenJob2';
 
 const jobMap: Map<ScheduledJob, scheduleJob> = new Map()
 
@@ -30,11 +30,11 @@ async function initScheduledJobs(guild: Guild) {
 
     await scheduleServerJob('distributeApJob', apScheduleCron, guild);
     if (apScheduleCron2 != null) {
-        await scheduleServerJob('distributeApJob', apScheduleCron2, guild);
+        await scheduleServerJob('distributeApJob2', apScheduleCron2, guild);
     }
     await scheduleServerJob('juryOpenJob', juryOpenScheduleCron, guild);
     if (juryOpenScheduleCron2 != null) {
-        await scheduleServerJob('juryOpenJob', juryOpenScheduleCron2, guild);
+        await scheduleServerJob('juryOpenJob2', juryOpenScheduleCron2, guild);
     }
 }
 
@@ -50,7 +50,13 @@ async function scheduleServerJob(job: ScheduledJob, cronTime: string, guild: Gui
         case 'distributeApJob':
             jobCallback = distributeApJob.bind(this, guild);
             break;
+        case 'distributeApJob2':
+            jobCallback = distributeApJob.bind(this, guild);
+            break;
         case 'juryOpenJob':
+            jobCallback = juryOpenJob.bind(this, guild);;
+            break;
+        case 'juryOpenJob2':
             jobCallback = juryOpenJob.bind(this, guild);;
             break;
         default:
