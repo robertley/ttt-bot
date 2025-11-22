@@ -704,6 +704,50 @@ function sendErrorMessage(guild: Guild, type: 'action button', errorMessage: str
     });
 }
 
+function releaseTheWhispers(guild: Guild): Observable<void> {
+    return new Observable<void>((sub) => {
+        let whisperChannel = guild.channels.cache.get(process.env.WHISPER_CHANNEL_ID) as TextChannel;
+        let whisperMessages: string[];
+        // get whispers from whispers.txt
+        import('fs').then(fs => {
+            fs.readFile(`./data/${guild.id}/whispers.txt`, 'utf8', (err, data) => {
+                if (err) {
+                    sub.error(err);
+                    sub.complete();
+                    return;
+                }
+                whisperMessages = data.split('\n').filter(line => line.trim().length > 0);
+                let sendObservables: Observable<void>[] = [];
+                for (let msg of whisperMessages) {
+                    sendObservables.push(new Observable<void>((sendSub) => {
+                        whisperChannel.send(msg).then(() => {
+                            sendSub.next();
+                            sendSub.complete();
+                        }
+                        ).catch((error) => {
+                            sendSub.error(error)
+                            sendSub.complete()
+                        });
+                    }));
+                }   
+                let completed = 0;
+                for (let o of sendObservables) {
+                    o.subscribe({
+                        next: () => {},
+                        complete: () => {
+                            completed++;
+                            if (completed == sendObservables.length) {
+                                sub.next();
+                                sub.complete();
+                            }
+                        }
+                    });
+                }
+            });
+        });
+    })
+}
+
 export const Bot = {
     updateBoardChannel,
     logAction,
@@ -719,5 +763,6 @@ export const Bot = {
     updateSetting,
     messageInteractionReply,
     resetSecretPlayerChannel,
-    sendErrorMessage
+    sendErrorMessage,
+    releaseTheWhispers,
 };
